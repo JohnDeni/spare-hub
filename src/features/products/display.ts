@@ -64,8 +64,10 @@ function sellerDisplayFromProduct(product: Product, seed: Listing) {
 
   const seller = product.seller;
   if (seller && typeof seller === "object") {
+    const s = seller as ProductSeller;
+    const sellerName = (s.display_name || s.company_name || "").trim();
     return {
-      sellerName: (seller as ProductSeller).display_name,
+      sellerName,
       sellerIsPreview: false,
     };
   }

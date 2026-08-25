@@ -7,7 +7,10 @@ export type ProductCurrency = "USD" | "EUR" | "UAH";
 export type ProductSeller = {
   id: number;
   company_name: string;
-  display_name: string;
+  address?: string;
+  phone_number?: string;
+  /** Optional; API currently exposes company_name only. */
+  display_name?: string;
 };
 
 export type Product = {

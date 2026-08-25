@@ -2,8 +2,8 @@ export const routeVisibility = {
   backend: {
     productsApiReady: true,
     categoriesApiReady: true,
-    /** Nested seller on product list/detail responses — flip when backend ships. */
-    productSellerInApi: false,
+    /** Nested seller on product list/detail responses. */
+    productSellerInApi: true,
   },
   header: {
     browse: true,
