@@ -213,3 +213,5 @@ __marimo__/
 /agriflow-marketplace-ignore/
 /node_modules/
 .wrangler/
+# User-uploaded media
+/media/

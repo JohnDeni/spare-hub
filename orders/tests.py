@@ -1,10 +1,13 @@
 from decimal import Decimal
+from io import BytesIO
 
+from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import User
-from orders.models import Order, OrderDetail
+from orders.models import Order, OrderDetail, OrderImage
 from orders.serializers import OrderSerializer
 from products.models import Product, ProductHistory
 from products.services import create_product_history
@@ -37,6 +40,12 @@ class OrderTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.token = response.data["access"]
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token}")
+
+    def _make_image(self, name="test.jpg"):
+        buffer = BytesIO()
+        Image.new("RGB", (10, 10), "white").save(buffer, format="JPEG")
+        buffer.seek(0)
+        return SimpleUploadedFile(name, buffer.read(), content_type="image/jpeg")
 
     def test_create_order(self):
         response = self.client.post(
@@ -299,3 +308,88 @@ class OrderTests(APITestCase):
         self.assertEqual(order.status, "paid")
         self.assertEqual(order.details.count(), 1)
         self.assertEqual(order.details.first().quantity, 2)
+
+    def test_upload_images(self):
+        order = Order.objects.create(user=self.user)
+        response = self.client.post(
+            f"/api/orders/{order.id}/images/",
+            {"images": [self._make_image("one.jpg"), self._make_image("two.jpg")]},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(order.images.count(), 2)
+
+    def test_upload_images_requires_files(self):
+        order = Order.objects.create(user=self.user)
+        response = self.client.post(
+            f"/api/orders/{order.id}/images/",
+            {},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_get_order_includes_images(self):
+        order = Order.objects.create(user=self.user)
+        OrderImage.objects.create(order=order, image=self._make_image())
+        response = self.client.get(f"/api/orders/{order.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["images"]), 1)
+        self.assertIn("image", response.data["images"][0])
+
+    def test_delete_image(self):
+        order = Order.objects.create(user=self.user)
+        order_image = OrderImage.objects.create(
+            order=order,
+            image=self._make_image(),
+        )
+        response = self.client.delete(
+            f"/api/orders/{order.id}/images/{order_image.id}/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(OrderImage.objects.filter(id=order_image.id).exists())
+
+    def test_user_cannot_upload_image_to_other_users_order(self):
+        other_user = User.objects.create_user(
+            email="other@test.com",
+            password="testpass123",
+        )
+        other_order = Order.objects.create(user=other_user)
+        response = self.client.post(
+            f"/api/orders/{other_order.id}/images/",
+            {"images": [self._make_image()]},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_user_cannot_delete_image_from_other_users_order(self):
+        other_user = User.objects.create_user(
+            email="other@test.com",
+            password="testpass123",
+        )
+        other_order = Order.objects.create(user=other_user)
+        other_image = OrderImage.objects.create(
+            order=other_order,
+            image=self._make_image(),
+        )
+        response = self.client.delete(
+            f"/api/orders/{other_order.id}/images/{other_image.id}/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(OrderImage.objects.filter(id=other_image.id).exists())
+
+    def test_image_endpoints_require_authentication(self):
+        self.client.credentials()
+        order = Order.objects.create(user=self.user)
+        order_image = OrderImage.objects.create(
+            order=order,
+            image=self._make_image(),
+        )
+        upload = self.client.post(
+            f"/api/orders/{order.id}/images/",
+            {"images": [self._make_image()]},
+            format="multipart",
+        )
+        delete = self.client.delete(f"/api/orders/{order.id}/images/{order_image.id}/")
+        self.assertEqual(upload.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(delete.status_code, status.HTTP_401_UNAUTHORIZED)

@@ -8,3 +8,7 @@ python-decouple
 drf-spectacular
 djangorestframework-simplejwt
 django-filter
+django-cors-headers
+ruff==0.6.9
+black==24.8.0
+Pillow==12.3.0
