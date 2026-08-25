@@ -4,7 +4,8 @@ import { SiteLayout } from "@/components/site-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { DescriptionEditor } from "@/components/description-editor";
+import { isDescriptionEmpty } from "@/lib/description-html";
 import {
   Select,
   SelectContent,
@@ -80,7 +81,7 @@ function SellNew() {
   const canContinue =
     step === 1
       ? form.name.trim() !== "" &&
-        form.description.trim() !== "" &&
+        !isDescriptionEmpty(form.description) &&
         form.brand.trim() !== "" &&
         (!requireCategory || form.categoryId !== "")
       : form.price.trim() !== "" &&
@@ -223,12 +224,11 @@ function SellNew() {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="desc">{t("sell.field.description")}</Label>
-                  <Textarea
+                  <DescriptionEditor
                     id="desc"
                     value={form.description}
-                    onChange={(e) => update("description", e.target.value)}
+                    onChange={(v) => update("description", v)}
                     placeholder={t("sell.field.description.ph")}
-                    rows={5}
                   />
                 </div>
 

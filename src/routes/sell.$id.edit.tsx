@@ -5,7 +5,8 @@ import { SiteLayout } from "@/components/site-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { DescriptionEditor } from "@/components/description-editor";
+import { isDescriptionEmpty } from "@/lib/description-html";
 import {
   Select,
   SelectContent,
@@ -104,7 +105,7 @@ function SellEdit() {
   const canSave =
     name.trim() !== "" &&
     brand.trim() !== "" &&
-    description.trim() !== "" &&
+    !isDescriptionEmpty(description) &&
     price.trim() !== "" &&
     Number.isFinite(Number(price)) &&
     Number(price) >= 0 &&
@@ -187,7 +188,12 @@ function SellEdit() {
 
             <div className="space-y-1.5">
               <Label htmlFor="desc">{t("sell.field.description")}</Label>
-              <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={5} />
+              <DescriptionEditor
+                id="desc"
+                value={description}
+                onChange={setDescription}
+                placeholder={t("sell.field.description.ph")}
+              />
             </div>
 
             <div className="space-y-1.5">

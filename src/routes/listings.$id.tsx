@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { QuantityStepper } from "@/components/quantity-stepper";
+import { DescriptionContent } from "@/components/description-content";
 import { useI18n } from "@/lib/i18n";
 import { routeVisibility } from "@/lib/route-visibility";
 import { listings } from "@/lib/listings";
@@ -170,9 +171,15 @@ function ListingDetail() {
 
             <section className="mt-10">
               <h2 className="font-display text-xl font-semibold">{t("listing.description")}</h2>
-              <p className="mt-3 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {listing.description || t("listing.description.body")}
-              </p>
+              <div className="mt-3">
+                {listing.description ? (
+                  <DescriptionContent value={listing.description} />
+                ) : (
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {t("listing.description.body")}
+                  </p>
+                )}
+              </div>
             </section>
 
             <section className="mt-10">
