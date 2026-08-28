@@ -1,5 +1,7 @@
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 
 from accounts.models import Seller
 from core.models import Audit
@@ -69,6 +71,25 @@ class Product(Audit):
 
     def __str__(self):
         return self.name
+
+
+class ProductImage(Audit):
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="images",
+    )
+
+    image = models.ImageField(upload_to="products/")
+
+    def __str__(self):
+        return f"Image for Product #{self.product_id}"
+
+
+@receiver(pre_delete, sender=ProductImage)
+def delete_product_image_file(sender, instance, **kwargs):
+    if instance.image:
+        instance.image.delete(save=False)
 
 
 class ProductHistory(Audit):
