@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from orders.models import Order, OrderDetail, OrderImage
+from orders.models import Order, OrderDetail
 from products.models import Product, ProductHistory
 
 
@@ -38,19 +38,8 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "product_id", "product_history"]
 
 
-class OrderImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = OrderImage
-        fields = ["id", "image", "created_at"]
-        read_only_fields = ["id", "created_at"]
-
-
 class OrderSerializer(serializers.ModelSerializer):
     details = OrderDetailSerializer(many=True, min_length=1)
-    images = OrderImageSerializer(
-        many=True,
-        read_only=True,
-    )
 
     class Meta:
         model = Order
@@ -61,7 +50,6 @@ class OrderSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "details",
-            "images",
         ]
         read_only_fields = ["user", "created_at", "updated_at"]
 
