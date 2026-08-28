@@ -1,11 +1,14 @@
 from decimal import Decimal
+from io import BytesIO
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import Seller
-from products.models import Category, Product
+from products.models import Category, Product, ProductImage
 
 User = get_user_model()
 
@@ -56,6 +59,12 @@ class BaseProductTestCase(APITestCase):
             email="admin@test.com",
             password="StrongPass123",
         )
+
+    def _make_image(self, name="test.jpg"):
+        buffer = BytesIO()
+        Image.new("RGB", (10, 10), "white").save(buffer, format="JPEG")
+        buffer.seek(0)
+        return SimpleUploadedFile(name, buffer.read(), content_type="image/jpeg")
 
     def login(self, email, password):
         response = self.client.post(
@@ -595,3 +604,85 @@ class ProductCategoryRelationTests(APITestCase):
         self.assertEqual(len(response.data["category"]), 1)
         self.assertEqual(response.data["category"][0]["id"], category.id)
         self.assertEqual(response.data["category"][0]["name"], category.name)
+
+
+class ProductImageTests(BaseProductTestCase):
+
+    def test_owner_can_upload_images(self):
+        self.login("seller@test.com", "StrongPass123")
+
+        response = self.client.post(
+            f"{self.products_url}{self.product.id}/images/",
+            {"images": [self._make_image("one.jpg"), self._make_image("two.jpg")]},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(self.product.images.count(), 2)
+
+    def test_upload_images_requires_files(self):
+        self.login("seller@test.com", "StrongPass123")
+
+        response = self.client.post(
+            f"{self.products_url}{self.product.id}/images/",
+            {},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_get_product_includes_images(self):
+        ProductImage.objects.create(product=self.product, image=self._make_image())
+        response = self.client.get(self.product_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["images"]), 1)
+        self.assertIn("image", response.data["images"][0])
+
+    def test_owner_can_delete_image(self):
+        self.login("seller@test.com", "StrongPass123")
+        image = ProductImage.objects.create(
+            product=self.product,
+            image=self._make_image(),
+        )
+        response = self.client.delete(
+            f"{self.products_url}{self.product.id}/images/{image.id}/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(ProductImage.objects.filter(id=image.id).exists())
+
+    def test_non_owner_cannot_upload_images(self):
+        self.login("other@test.com", "StrongPass123")
+
+        response = self.client.post(
+            f"{self.products_url}{self.product.id}/images/",
+            {"images": [self._make_image()]},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_non_owner_cannot_delete_image(self):
+        self.login("other@test.com", "StrongPass123")
+        image = ProductImage.objects.create(
+            product=self.product,
+            image=self._make_image(),
+        )
+        response = self.client.delete(
+            f"{self.products_url}{self.product.id}/images/{image.id}/"
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(ProductImage.objects.filter(id=image.id).exists())
+
+    def test_image_endpoints_require_authentication(self):
+        image = ProductImage.objects.create(
+            product=self.product,
+            image=self._make_image(),
+        )
+        upload = self.client.post(
+            f"{self.products_url}{self.product.id}/images/",
+            {"images": [self._make_image()]},
+            format="multipart",
+        )
+        delete = self.client.delete(
+            f"{self.products_url}{self.product.id}/images/{image.id}/"
+        )
+        self.assertEqual(upload.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(delete.status_code, status.HTTP_401_UNAUTHORIZED)

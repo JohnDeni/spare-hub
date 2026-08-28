@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from accounts.serializers import SellerSerializer
-from products.models import Category, Product
+from products.models import Category, Product, ProductImage
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -9,6 +9,13 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = "__all__"
+
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ["id", "image", "created_at"]
+        read_only_fields = ["id", "created_at"]
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -34,6 +41,11 @@ class ProductSerializer(serializers.ModelSerializer):
         min_value=0,
     )
 
+    images = ProductImageSerializer(
+        many=True,
+        read_only=True,
+    )
+
     class Meta:
         model = Product
         fields = [
@@ -48,6 +60,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "quantity",
             "category",
             "category_ids",
+            "images",
             "created_at",
             "updated_at",
         ]

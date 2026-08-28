@@ -7,9 +7,22 @@ import type { TokenPair } from "./types";
 const ACCESS_KEY = "sparehub.auth.access";
 const REFRESH_KEY = "sparehub.auth.refresh";
 
-export const API_BASE_URL =
-  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) ||
-  "http://localhost:8000";
+// Falls back to the page's own hostname so the app keeps working when opened
+// via a LAN IP (e.g. from a phone) instead of localhost/127.0.0.1 — a fixed
+// VITE_API_BASE_URL would otherwise point the browser at itself.
+function resolveApiBaseUrl(): string {
+  const configured =
+    typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL;
+  if (configured) return configured;
+
+  if (typeof window !== "undefined") {
+    return `http://${window.location.hostname}:8000`;
+  }
+
+  return "http://localhost:8000";
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 function isBrowser() {
   return typeof window !== "undefined";

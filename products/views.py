@@ -1,8 +1,10 @@
+from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as filters
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import (
     AllowAny,
     IsAdminUser,
@@ -10,9 +12,13 @@ from rest_framework.permissions import (
 )
 from rest_framework.response import Response
 
-from products.models import Category, Product
+from products.models import Category, Product, ProductImage
 from products.permissions import IsProductOwner, IsSeller
-from products.serializers import CategorySerializer, ProductSerializer
+from products.serializers import (
+    CategorySerializer,
+    ProductImageSerializer,
+    ProductSerializer,
+)
 from products.services import create_product_history
 
 
@@ -52,7 +58,13 @@ class ProductViewSet(viewsets.ModelViewSet):
     ordering = ["-created_at"]
 
     def get_permissions(self):
-        if self.action in ["update", "partial_update", "destroy"]:
+        if self.action in [
+            "update",
+            "partial_update",
+            "destroy",
+            "upload_images",
+            "delete_image",
+        ]:
             return [IsAuthenticated(), IsProductOwner()]
 
         if self.action == "create":
@@ -69,7 +81,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         if self.action == "my":
             qs = qs.filter(seller__user=self.request.user)
 
-        return qs.select_related("seller").prefetch_related("category")
+        return qs.select_related("seller").prefetch_related("category", "images")
 
     def perform_create(self, serializer):
         product = serializer.save(
@@ -88,6 +100,57 @@ class ProductViewSet(viewsets.ModelViewSet):
             many=True,
         )
         return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="images",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def upload_images(self, request, pk=None):
+        product = self.get_object()
+
+        images = request.FILES.getlist("images")
+
+        if not images:
+            return Response(
+                {"detail": "At least one image is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        product_images = [
+            ProductImage.objects.create(
+                product=product,
+                image=image,
+            )
+            for image in images
+        ]
+
+        serializer = ProductImageSerializer(
+            product_images,
+            many=True,
+            context={"request": request},
+        )
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=True,
+        methods=["delete"],
+        url_path=r"images/(?P<image_id>\d+)",
+    )
+    def delete_image(self, request, pk=None, image_id=None):
+        product = self.get_object()
+
+        image = get_object_or_404(
+            ProductImage,
+            id=image_id,
+            product=product,
+        )
+
+        image.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
