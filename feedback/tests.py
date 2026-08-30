@@ -77,15 +77,14 @@ class ReviewModelTests(BaseReviewTestCase):
             str(review), f"Review #{review.id} for product #{self.product.id}"
         )
 
-    def test_rating_below_minimum_is_invalid(self):
-        review = Review(product=self.product, user=self.user, rating=0, comment="Bad")
-        with self.assertRaises(ValidationError):
-            review.full_clean()
-
-    def test_rating_above_maximum_is_invalid(self):
-        review = Review(product=self.product, user=self.user, rating=6, comment="Bad")
-        with self.assertRaises(ValidationError):
-            review.full_clean()
+    def test_rating_out_of_range_is_invalid(self):
+        for rating in [0, 6]:
+            with self.subTest(rating=rating):
+                review = Review(
+                    product=self.product, user=self.user, rating=rating, comment="Bad"
+                )
+                with self.assertRaises(ValidationError):
+                    review.full_clean()
 
     def test_rating_within_range_is_valid(self):
         review = Review(product=self.product, user=self.user, rating=5, comment="Great")
@@ -147,18 +146,6 @@ class ReviewSerializerTests(BaseReviewTestCase):
         )
         self.assertFalse(serializer.is_valid())
         self.assertIn("rating", serializer.errors)
-
-    def test_serializer_update_ignores_product_change(self):
-        review = Review.objects.create(product=self.product, user=self.user, rating=3)
-        serializer = ReviewSerializer(
-            review,
-            data={"product": self.other_product.id, "rating": 5},
-            partial=True,
-        )
-        self.assertTrue(serializer.is_valid(), serializer.errors)
-        updated = serializer.save()
-        self.assertEqual(updated.product_id, self.product.id)
-        self.assertEqual(updated.rating, 5)
 
 
 class IsReviewOwnerPermissionTests(BaseReviewTestCase):

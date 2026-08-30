@@ -12,6 +12,7 @@ from rest_framework.permissions import (
 )
 from rest_framework.response import Response
 
+from core.constants import IMAGE_DETAIL_URL_PATH
 from products.models import Category, Product, ProductImage
 from products.permissions import IsProductOwner, IsSeller
 from products.serializers import (
@@ -137,7 +138,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=["delete"],
-        url_path=r"images/(?P<image_id>\d+)",
+        url_path=IMAGE_DETAIL_URL_PATH,
     )
     def delete_image(self, request, pk=None, image_id=None):
         product = self.get_object()

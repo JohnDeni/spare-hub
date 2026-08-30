@@ -6,6 +6,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from core.constants import IMAGE_DETAIL_URL_PATH
 from feedback.models import Review, ReviewImage
 from feedback.permissions import IsReviewOwner
 from feedback.serializers import (
@@ -79,7 +80,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=["delete"],
-        url_path=r"images/(?P<image_id>\d+)",
+        url_path=IMAGE_DETAIL_URL_PATH,
     )
     def delete_image(self, request, pk=None, image_id=None):
         review = self.get_object()
