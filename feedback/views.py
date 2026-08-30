@@ -25,7 +25,7 @@ class ReviewFilter(filters.FilterSet):
 class ReviewViewSet(viewsets.ModelViewSet):
 
     queryset = Review.objects.select_related("user", "product").prefetch_related(
-        "replies__user", "images"
+        "replies__user", "replies__child_replies__user", "images"
     )
     serializer_class = ReviewSerializer
     filterset_class = ReviewFilter
@@ -98,7 +98,10 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def add_reply(self, request, pk=None):
         review = self.get_object()
 
-        serializer = ReviewReplySerializer(data=request.data)
+        serializer = ReviewReplySerializer(
+            data=request.data,
+            context={"review": review, "request": request},
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save(review=review, user=request.user)
 

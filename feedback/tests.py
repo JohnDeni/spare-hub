@@ -384,3 +384,53 @@ class ReviewReplyAPITests(BaseReviewTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["replies"]), 1)
         self.assertEqual(response.data["replies"][0]["message"], "Hi")
+
+    def test_can_reply_to_a_reply(self):
+        self.login("other@test.com", "StrongPass123")
+        review = Review.objects.create(product=self.product, user=self.user, rating=4)
+        top_reply = ReviewReply.objects.create(
+            review=review, user=self.user, message="Thanks!"
+        )
+        response = self.client.post(
+            f"{self.reviews_url}{review.id}/replies/",
+            {"message": "No problem", "parent_reply": top_reply.id},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(top_reply.child_replies.count(), 1)
+        self.assertEqual(top_reply.child_replies.first().message, "No problem")
+
+    def test_nested_replies_appear_under_parent_in_response(self):
+        review = Review.objects.create(product=self.product, user=self.user, rating=4)
+        top_reply = ReviewReply.objects.create(
+            review=review, user=self.user, message="Thanks!"
+        )
+        ReviewReply.objects.create(
+            review=review,
+            user=self.other_user,
+            message="No problem",
+            parent_reply=top_reply,
+        )
+        response = self.client.get(f"{self.reviews_url}{review.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["replies"]), 1)
+        children = response.data["replies"][0]["child_replies"]
+        self.assertEqual(len(children), 1)
+        self.assertEqual(children[0]["message"], "No problem")
+
+    def test_cannot_reply_to_a_reply_from_another_review(self):
+        self.login("other@test.com", "StrongPass123")
+        review = Review.objects.create(product=self.product, user=self.user, rating=4)
+        other_review = Review.objects.create(
+            product=self.other_product, user=self.user, rating=3
+        )
+        foreign_reply = ReviewReply.objects.create(
+            review=other_review, user=self.user, message="Unrelated"
+        )
+        response = self.client.post(
+            f"{self.reviews_url}{review.id}/replies/",
+            {"message": "Hi", "parent_reply": foreign_reply.id},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("parent_reply", response.data)

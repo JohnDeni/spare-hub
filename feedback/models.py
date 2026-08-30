@@ -42,6 +42,14 @@ class ReviewReply(Audit):
         related_name="replies",
     )
 
+    parent_reply = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        related_name="child_replies",
+        null=True,
+        blank=True,
+    )
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
