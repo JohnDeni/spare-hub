@@ -3,10 +3,12 @@ import type { ProductInput, ProductListParams } from "./types";
 import {
   createProduct,
   deleteProduct,
+  deleteProductImage,
   getProduct,
   listMyProducts,
   listProducts,
   updateProduct,
+  uploadProductImages,
 } from "./client";
 
 export const productKeys = {
@@ -73,6 +75,28 @@ export function useDeleteProduct() {
   return useMutation({
     mutationFn: (id: number) => deleteProduct(id),
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+
+export function useUploadProductImages(productId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (files: File[]) => uploadProductImages(productId, files),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: productKeys.detail(productId) });
+      void queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+}
+
+export function useDeleteProductImage(productId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (imageId: number) => deleteProductImage(productId, imageId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: productKeys.detail(productId) });
       void queryClient.invalidateQueries({ queryKey: productKeys.all });
     },
   });

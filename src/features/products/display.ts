@@ -2,6 +2,7 @@ import { listings, type Listing } from "@/lib/listings";
 import type { Lang } from "@/lib/i18n";
 import { routeVisibility } from "@/lib/route-visibility";
 import { slugifyCategory } from "@/features/categories/display";
+import { productImageUrls } from "@/lib/product-media";
 import type {
   Product,
   ProductConditionApi,
@@ -27,6 +28,9 @@ export type ProductDisplay = {
   categoryNames: string[];
   /** Slug of first API category, or mock category key for links. */
   categorySlug: string;
+  /** Resolved image URLs from the API, cover first. */
+  imageUrls: string[];
+  coverImageUrl: string | null;
   mock: Pick<
     Listing,
     "category" | "location" | "verified" | "rating" | "reviews" | "emoji"
@@ -82,6 +86,7 @@ export function productToDisplay(product: Product): ProductDisplay {
   const categoryNames = apiCategories.map((c) => c.name).filter(Boolean);
   const categorySlug =
     categoryNames[0] != null ? slugifyCategory(categoryNames[0]) : seed.category;
+  const imageUrls = productImageUrls(product.images);
 
   return {
     id: String(product.id),
@@ -97,6 +102,8 @@ export function productToDisplay(product: Product): ProductDisplay {
     ...seller,
     categoryNames,
     categorySlug,
+    imageUrls,
+    coverImageUrl: imageUrls[0] ?? null,
     mock: mockExtrasForProduct(product),
   };
 }
@@ -120,6 +127,7 @@ export function mockListingToDisplay(listing: Listing, lang: Lang = "en"): Produ
       condition: uiConditionToApi(listing.condition),
       quantity: listing.stock === "in" ? 12 : 3,
       category: [],
+      images: [],
       created_at: "",
       updated_at: "",
       deleted_at: null,
@@ -136,6 +144,8 @@ export function mockListingToDisplay(listing: Listing, lang: Lang = "en"): Produ
     sellerIsPreview: true,
     categoryNames: [],
     categorySlug: listing.category,
+    imageUrls: [],
+    coverImageUrl: null,
     mock: {
       category: listing.category,
       location: listing.location,

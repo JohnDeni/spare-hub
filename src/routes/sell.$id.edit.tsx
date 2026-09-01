@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DescriptionEditor } from "@/components/description-editor";
+import { ProductImagesField } from "@/components/product-images-field";
 import { isDescriptionEmpty } from "@/lib/description-html";
 import {
   Select,
@@ -35,6 +36,7 @@ import {
   productQueries,
   useDeleteProduct,
   useMyProducts,
+  useProduct,
   useUpdateProduct,
 } from "@/features/products/queries";
 import { apiConditionToUi, productToDisplay, uiConditionToApi } from "@/features/products/display";
@@ -78,6 +80,8 @@ function SellEdit() {
   const { data: mine = [], isLoading: mineLoading } = useMyProducts(ready);
   const updateProduct = useUpdateProduct(product.id);
   const deleteProduct = useDeleteProduct();
+  const { data: liveProduct } = useProduct(product.id);
+  const images = liveProduct?.images ?? product.images ?? [];
   const { mock } = display;
 
   const [name, setName] = useState(product.name);
@@ -184,6 +188,11 @@ function SellEdit() {
             <div className="space-y-1.5">
               <Label htmlFor="brand">{t("sell.field.brand")}</Label>
               <Input id="brand" value={brand} onChange={(e) => setBrand(e.target.value)} className="h-11" />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>{t("sell.field.photos")}</Label>
+              <ProductImagesField mode="product" productId={product.id} images={images} />
             </div>
 
             <div className="space-y-1.5">

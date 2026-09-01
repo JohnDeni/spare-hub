@@ -13,6 +13,12 @@ export type ProductSeller = {
   display_name?: string;
 };
 
+export type ProductImage = {
+  id: number;
+  image: string;
+  created_at: string;
+};
+
 export type Product = {
   id: number;
   seller: number | ProductSeller | null;
@@ -24,6 +30,7 @@ export type Product = {
   condition: ProductConditionApi;
   quantity: number;
   category?: Category[];
+  images?: ProductImage[];
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

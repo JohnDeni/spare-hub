@@ -3,6 +3,7 @@ import type { UserProfile } from "@/features/auth/types";
 import type {
   PaginatedProducts,
   Product,
+  ProductImage,
   ProductInput,
   ProductListParams,
   ProductListResult,
@@ -66,4 +67,24 @@ export async function updateProduct(id: number, body: Partial<ProductInput>): Pr
 
 export async function deleteProduct(id: number): Promise<void> {
   await apiRequest(`/api/products/${id}/`, { method: "DELETE" });
+}
+
+export async function uploadProductImages(
+  productId: number,
+  files: File[],
+): Promise<ProductImage[]> {
+  const form = new FormData();
+  for (const file of files) {
+    form.append("images", file);
+  }
+  return apiRequest<ProductImage[]>(`/api/products/${productId}/images/`, {
+    method: "POST",
+    body: form,
+  });
+}
+
+export async function deleteProductImage(productId: number, imageId: number): Promise<void> {
+  await apiRequest(`/api/products/${productId}/images/${imageId}/`, {
+    method: "DELETE",
+  });
 }

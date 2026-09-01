@@ -17,8 +17,16 @@ export function ListingCard({ listing }: { listing: ProductDisplay }) {
       className="block group focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl"
     >
       <Card className="overflow-hidden border-border/70 transition-all group-hover:border-accent/60 group-hover:shadow-md h-full">
-        <div className="aspect-[4/3] bg-gradient-to-br from-secondary to-muted flex items-center justify-center relative">
-          <Package className="h-14 w-14 text-muted-foreground/50 transition-transform group-hover:scale-105" />
+        <div className="aspect-[4/3] bg-gradient-to-br from-secondary to-muted flex items-center justify-center relative overflow-hidden">
+          {listing.coverImageUrl ? (
+            <img
+              src={listing.coverImageUrl}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+            />
+          ) : (
+            <Package className="h-14 w-14 text-muted-foreground/50 transition-transform group-hover:scale-105" />
+          )}
           <div className="absolute top-3 right-3">
             <Badge
               className={

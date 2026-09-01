@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { QuantityStepper } from "@/components/quantity-stepper";
 import { DescriptionContent } from "@/components/description-content";
+import { ListingImageGallery } from "@/components/listing-image-gallery";
 import { useI18n } from "@/lib/i18n";
 import { routeVisibility } from "@/lib/route-visibility";
 import { listings } from "@/lib/listings";
@@ -26,7 +27,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { useCart } from "@/features/cart/cart-context";
 import { initials } from "@/lib/profile";
 import { toast } from "sonner";
-import { ArrowLeft, Package, Pencil, ShoppingCart, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, ShoppingCart, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/listings/$id")({
   loader: async ({ params, context: { queryClient } }) => {
@@ -86,6 +87,7 @@ function ListingDetail() {
   const { addItem } = useCart();
   const maxQty = Math.max(0, listing.quantity);
   const [qty, setQty] = useState(maxQty > 0 ? 1 : 0);
+  const [activeImage, setActiveImage] = useState(0);
   const showSeller = Boolean(listing.sellerName) && !listing.sellerIsPreview;
   const sellerInitials = initials(listing.sellerName, listing.sellerName);
 
@@ -154,20 +156,14 @@ function ListingDetail() {
 
         <div className="mt-6 grid lg:grid-cols-[1.4fr_1fr] gap-8">
           <div>
-            <div className="aspect-[4/3] rounded-2xl border border-border/70 bg-gradient-to-br from-secondary to-muted flex items-center justify-center relative overflow-hidden">
-              <Package className="h-24 w-24 text-muted-foreground/40" />
-              <div className="absolute top-4 right-4">
-                <Badge
-                  className={
-                    listing.stock === "in"
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-[color:var(--gold)] text-[color:var(--gold-foreground)]"
-                  }
-                >
-                  {listing.stock === "in" ? t("listings.inStock") : t("listings.lowStock")}
-                </Badge>
-              </div>
-            </div>
+            <ListingImageGallery
+              imageUrls={listing.imageUrls}
+              activeIndex={activeImage}
+              onActiveIndexChange={setActiveImage}
+              stockLabel={listing.stock === "in" ? t("listings.inStock") : t("listings.lowStock")}
+              stockTone={listing.stock === "in" ? "in" : "low"}
+              title={listing.name}
+            />
 
             <section className="mt-10">
               <h2 className="font-display text-xl font-semibold">{t("listing.description")}</h2>

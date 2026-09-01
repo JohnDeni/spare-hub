@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DescriptionEditor } from "@/components/description-editor";
+import { ProductImagesField } from "@/components/product-images-field";
 import { isDescriptionEmpty } from "@/lib/description-html";
 import {
   Select,
@@ -26,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { routeVisibility } from "@/lib/route-visibility";
 import { useCreateProduct } from "@/features/products/queries";
+import { uploadProductImages } from "@/features/products/client";
 import { useSellerGuard } from "@/features/products/use-seller-guard";
 import { ApiError } from "@/features/auth/client";
 
@@ -70,6 +72,7 @@ function SellNew() {
   const [form, setForm] = useState<FormState>(initial);
   const [done, setDone] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
 
   const totalSteps = 2;
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) =>
@@ -101,6 +104,13 @@ function SellNew() {
         quantity: Number(form.quantity),
         ...(form.categoryId ? { category_ids: [Number(form.categoryId)] } : {}),
       });
+      if (pendingPhotos.length > 0) {
+        try {
+          await uploadProductImages(product.id, pendingPhotos);
+        } catch {
+          toast.error(t("sell.field.photos.error"));
+        }
+      }
       setCreatedId(String(product.id));
       setDone(true);
       toast.success(t("sell.review.published"));
@@ -140,7 +150,7 @@ function SellNew() {
           </h1>
           <p className="mt-2 text-muted-foreground">{t("sell.review.publishedBody")}</p>
           <div className="mt-6 flex justify-center gap-2">
-            <Button onClick={() => { setForm(initial); setStep(1); setDone(false); }} variant="outline">
+            <Button onClick={() => { setForm(initial); setStep(1); setDone(false); setPendingPhotos([]); }} variant="outline">
               {t("sell.review.another")}
             </Button>
             <Button onClick={() => navigate({ to: "/account/listings" })}>
@@ -319,6 +329,15 @@ function SellNew() {
                     value={form.quantity}
                     onChange={(e) => update("quantity", e.target.value)}
                     className="h-11"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>{t("sell.field.photos")}</Label>
+                  <ProductImagesField
+                    mode="draft"
+                    files={pendingPhotos}
+                    onChange={setPendingPhotos}
                   />
                 </div>
 

@@ -130,10 +130,11 @@ export async function apiRequest<T = unknown>(
   options: RequestOptions = {},
 ): Promise<T> {
   const { body, auth = true, retry = true, headers, ...rest } = options;
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
 
   const finalHeaders: Record<string, string> = {
     Accept: "application/json",
-    ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+    ...(body !== undefined && !isFormData ? { "Content-Type": "application/json" } : {}),
     ...((headers as Record<string, string>) ?? {}),
   };
 
@@ -145,7 +146,7 @@ export async function apiRequest<T = unknown>(
   const res = await fetch(buildUrl(path), {
     ...rest,
     headers: finalHeaders,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isFormData ? (body as FormData) : JSON.stringify(body),
   });
 
   if (res.status === 401 && auth && retry) {
