@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("products", "0001_initial"),
+        ("products", "0002_product_average_rating_product_review_count"),
     ]
 
     operations = [

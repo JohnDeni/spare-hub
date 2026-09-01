@@ -89,9 +89,6 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 if DEBUG:
-    # Allow the Vite dev server to be reached from other devices on the same
-    # LAN (e.g. testing on a phone), where the origin is a private-network IP
-    # instead of localhost/127.0.0.1.
     CORS_ALLOWED_ORIGIN_REGEXES = [
         r"^http://192\.168\.\d{1,3}\.\d{1,3}:8080$",
         r"^http://10\.\d{1,3}\.\d{1,3}\.\d{1,3}:8080$",
