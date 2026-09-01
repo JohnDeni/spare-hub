@@ -1,6 +1,8 @@
 import { listings, type Listing } from "@/lib/listings";
 import type { Lang } from "@/lib/i18n";
 import { routeVisibility } from "@/lib/route-visibility";
+import { slugifyCategory } from "@/features/categories/display";
+import { productImageUrls } from "@/lib/product-media";
 import type {
   Product,
   ProductConditionApi,
@@ -22,6 +24,13 @@ export type ProductDisplay = {
   currency: ProductCurrency;
   sellerName: string;
   sellerIsPreview: boolean;
+  /** API category names when present; empty if none. */
+  categoryNames: string[];
+  /** Slug of first API category, or mock category key for links. */
+  categorySlug: string;
+  /** Resolved image URLs from the API, cover first. */
+  imageUrls: string[];
+  coverImageUrl: string | null;
   mock: Pick<
     Listing,
     "category" | "location" | "verified" | "rating" | "reviews" | "emoji"
@@ -59,8 +68,10 @@ function sellerDisplayFromProduct(product: Product, seed: Listing) {
 
   const seller = product.seller;
   if (seller && typeof seller === "object") {
+    const s = seller as ProductSeller;
+    const sellerName = (s.display_name || s.company_name || "").trim();
     return {
-      sellerName: (seller as ProductSeller).display_name,
+      sellerName,
       sellerIsPreview: false,
     };
   }
@@ -71,6 +82,11 @@ function sellerDisplayFromProduct(product: Product, seed: Listing) {
 export function productToDisplay(product: Product): ProductDisplay {
   const seed = mockSeedForProduct(product);
   const seller = sellerDisplayFromProduct(product, seed);
+  const apiCategories = Array.isArray(product.category) ? product.category : [];
+  const categoryNames = apiCategories.map((c) => c.name).filter(Boolean);
+  const categorySlug =
+    categoryNames[0] != null ? slugifyCategory(categoryNames[0]) : seed.category;
+  const imageUrls = productImageUrls(product.images);
 
   return {
     id: String(product.id),
@@ -84,6 +100,10 @@ export function productToDisplay(product: Product): ProductDisplay {
     condition: apiConditionToUi(product.condition ?? "new"),
     currency: product.currency ?? "USD",
     ...seller,
+    categoryNames,
+    categorySlug,
+    imageUrls,
+    coverImageUrl: imageUrls[0] ?? null,
     mock: mockExtrasForProduct(product),
   };
 }
@@ -106,6 +126,8 @@ export function mockListingToDisplay(listing: Listing, lang: Lang = "en"): Produ
       currency: listing.currency,
       condition: uiConditionToApi(listing.condition),
       quantity: listing.stock === "in" ? 12 : 3,
+      category: [],
+      images: [],
       created_at: "",
       updated_at: "",
       deleted_at: null,
@@ -120,6 +142,10 @@ export function mockListingToDisplay(listing: Listing, lang: Lang = "en"): Produ
     currency: listing.currency,
     sellerName: listing.seller,
     sellerIsPreview: true,
+    categoryNames: [],
+    categorySlug: listing.category,
+    imageUrls: [],
+    coverImageUrl: null,
     mock: {
       category: listing.category,
       location: listing.location,
@@ -135,4 +161,9 @@ export function currencySymbol(currency: ProductCurrency | Listing["currency"]) 
   if (currency === "EUR") return "€";
   if (currency === "UAH") return "₴";
   return "$";
+}
+
+/** Primary category label: API name when present, else mock i18n key path handled by caller. */
+export function primaryCategoryLabel(display: ProductDisplay): string | null {
+  return display.categoryNames[0] ?? null;
 }

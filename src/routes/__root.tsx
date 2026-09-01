@@ -12,6 +12,7 @@ import appCss from "../styles.css?url";
 import { ThemeProvider } from "@/lib/theme";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/features/auth/auth-context";
+import { CartProvider } from "@/features/cart/cart-context";
 import { Toaster } from "@/components/ui/sonner";
 import { CookieConsent } from "@/components/cookie-consent";
 
@@ -131,9 +132,11 @@ function RootComponent() {
       <ThemeProvider>
         <I18nProvider>
           <AuthProvider>
-            <Outlet />
-            <Toaster />
-            <CookieConsent />
+            <CartProvider>
+              <Outlet />
+              <Toaster />
+              <CookieConsent />
+            </CartProvider>
           </AuthProvider>
         </I18nProvider>
       </ThemeProvider>

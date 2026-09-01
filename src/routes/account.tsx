@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/features/auth/auth-context";
 import { canManageProducts } from "@/features/products/client";
 import { routeVisibility } from "@/lib/route-visibility";
-import { User, ListChecks, Heart, Settings, Loader2 } from "lucide-react";
+import { User, ListChecks, Heart, Settings, Loader2, ShoppingBag } from "lucide-react";
 
 export const Route = createFileRoute("/account")({
   component: AccountLayout,
@@ -37,6 +37,9 @@ function AccountLayout() {
       : []),
     ...(routeVisibility.accountTabs.listings && canManageProducts(user)
       ? [{ to: "/account/listings", label: t("account.nav.listings"), icon: ListChecks }]
+      : []),
+    ...(routeVisibility.accountTabs.orders
+      ? [{ to: "/account/orders", label: t("account.nav.orders"), icon: ShoppingBag }]
       : []),
     ...(routeVisibility.accountTabs.favorites
       ? [{ to: "/account/favorites", label: t("account.nav.favorites"), icon: Heart }]

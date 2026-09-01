@@ -30,7 +30,7 @@ SECRET_KEY = config("SECRET_KEY", default="django-insecure-dev-key")
 DEBUG = config("DEBUG", default=True, cast=bool)
 
 # ALLOWED_HOSTS — з .env як кома-розділений рядок, перетворимо на список
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost").split(",")
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",")
 
 
 # Application definition
@@ -84,6 +84,7 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:8080",
+    "http://127.0.0.1:5173",
     "http://127.0.0.1:8080",
 ]
 

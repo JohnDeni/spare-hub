@@ -20,7 +20,7 @@ const dict = {
     "hero.viewListing": "View listing",
     "hero.title": "Parts, machinery & inputs — trusted by working farms.",
     "hero.subtitle":
-      "Find genuine tractor parts, irrigation kits, sprayers and seeds from verified sellers across the region. Built with farmers, agronomists and cooperatives in mind.",
+      "Find tractor parts, irrigation kits, sprayers and seeds from sellers across the region.",
     "hero.searchPlaceholder": "Search part number, brand or crop…",
     "hero.searchCta": "Search",
     "hero.stat.sellers": "Verified sellers",
@@ -28,10 +28,10 @@ const dict = {
     "hero.stat.regions": "Regions served",
 
     "cats.title": "Browse by category",
-    "cats.subtitle": "Everything you need for the season — sourced from trusted suppliers.",
+    "cats.subtitle": "Pick a category to narrow the catalog.",
 
-    "listings.title": "Featured listings",
-    "listings.subtitle": "Hand-picked deals from top-rated sellers this week.",
+    "listings.title": "Recent listings",
+    "listings.subtitle": "Parts available on Spare Hub right now.",
     "listings.viewAll": "View all listings",
     "listings.inStock": "In stock",
     "listings.lowStock": "Low stock",
@@ -98,6 +98,7 @@ const dict = {
     "browse.condition.new": "New",
     "browse.condition.used": "Used",
     "browse.condition.refurb": "Refurbished",
+    "browse.condition.all": "Any condition",
 
     "cat.tractor": "Tractor parts",
     "cat.tractor.desc": "Engine, hydraulics, filters, belts",
@@ -121,7 +122,7 @@ const dict = {
     "listing.spec.stock": "Availability",
     "listing.spec.sku": "Reference",
     "listing.description": "Description",
-    "listing.description.body": "Sourced from a verified seller. Compatibility, condition and shipping confirmed before listing. Message the seller for invoicing, delivery and bulk pricing.",
+    "listing.description.body": "No description provided for this listing.",
     "listing.seller": "Seller",
     "listing.seller.viewProfile": "View seller profile",
     "listing.shipping": "Shipping & returns",
@@ -131,6 +132,35 @@ const dict = {
     "listing.call": "Call seller",
     "listing.save": "Save",
     "listing.share": "Share",
+    "listing.placeOrder": "Place order",
+    "listing.placeOrder.qty": "Quantity",
+    "qty.decrease": "Decrease quantity",
+    "qty.increase": "Increase quantity",
+    "listing.placeOrder.success": "Order placed",
+    "listing.placeOrder.error": "Could not place the order. Try again.",
+    "listing.placeOrder.unavailable": "This listing is out of stock.",
+    "listing.addToCart": "Add to cart",
+    "listing.addToCart.success": "Added to cart",
+    "listing.viewCart": "View cart",
+    "cart.title": "Your cart",
+    "cart.subtitle": "Review items, then place one order.",
+    "cart.emptyTitle": "Cart is empty",
+    "cart.emptyBody": "Browse listings and add parts you need.",
+    "cart.remove": "Remove",
+    "cart.checkout": "Place order",
+    "cart.checkout.success": "Order placed",
+    "cart.checkout.error": "Could not place the order. Try again.",
+    "cart.total": "Total",
+    "cart.totalItems": "{count} items",
+    "nav.cart": "Cart",
+    "listing.gallery.close": "Close gallery",
+    "listing.gallery.counter": "{current} of {total}",
+    "listing.gallery.next": "Next photo",
+    "listing.gallery.open": "Open photo gallery",
+    "listing.gallery.previous": "Previous photo",
+    "listing.gallery.reset": "Reset zoom",
+    "listing.gallery.zoomIn": "Zoom in",
+    "listing.gallery.zoomOut": "Zoom out",
     "listing.notFound.title": "Listing not found",
     "listing.notFound.body": "This listing was removed or never existed.",
 
@@ -180,8 +210,13 @@ const dict = {
     "sell.field.title.ph": "e.g. John Deere 6M hydraulic pump — OEM",
     "sell.field.brand": "Brand or manufacturer",
     "sell.field.brand.ph": "John Deere, Case IH, Netafim…",
+    "sell.field.category": "Category",
+    "sell.field.category.placeholder": "Select a category",
     "sell.field.condition": "Condition",
     "sell.field.description": "Description",
+    "sell.field.description.bold": "Bold",
+    "sell.field.description.italic": "Italic",
+    "sell.field.description.list": "Bullet list",
     "sell.field.description.ph": "Compatibility, year, hours, any defects. Honesty closes deals.",
     "sell.field.location": "Location",
     "sell.field.location.ph": "City, country",
@@ -191,7 +226,11 @@ const dict = {
     "sell.field.stock.in": "In stock",
     "sell.field.stock.low": "Low stock",
     "sell.field.photos": "Photos",
+    "sell.field.photos.add": "Add photos",
+    "sell.field.photos.delete": "Remove photo",
+    "sell.field.photos.error": "Could not update photos. Try again.",
     "sell.field.photos.hint": "Drop images or click to upload. First photo is the cover.",
+    "sell.field.photos.uploaded": "Photos added",
     "sell.review.published": "Listing published",
     "sell.review.publishedBody": "Your listing is now live on Spare Hub.",
     "sell.review.viewListings": "View my listings",
@@ -205,8 +244,26 @@ const dict = {
     "account.save": "Save changes",
     "account.nav.profile": "Profile",
     "account.nav.listings": "My listings",
+    "account.nav.orders": "Orders",
     "account.nav.favorites": "Favorites",
     "account.nav.settings": "Settings",
+    "account.orders.back": "Back to orders",
+    "account.orders.cancel": "Cancel order",
+    "account.orders.cancelConfirm.body": "The seller will see the order as cancelled.",
+    "account.orders.cancelConfirm.title": "Cancel this order?",
+    "account.orders.cancelled": "Order cancelled",
+    "account.orders.detail.items": "Items",
+    "account.orders.detail.placed": "Placed",
+    "account.orders.detail.title": "Order #{id}",
+    "account.orders.emptyBody": "When you place an order from a listing, it will show up here.",
+    "account.orders.emptyTitle": "No orders yet",
+    "account.orders.status.cancelled": "Cancelled",
+    "account.orders.status.paid": "Paid",
+    "account.orders.status.pending": "Pending",
+    "account.orders.subtitle": "Orders you placed on Spare Hub.",
+    "account.orders.summary": "{name} · {count} items",
+    "account.orders.title": "Your orders",
+    "account.orders.view": "View order",
     "account.profile.title": "Your profile",
     "account.profile.subtitle": "How buyers and sellers see you on Spare Hub.",
     "account.field.displayName": "Display name",
@@ -323,7 +380,7 @@ const dict = {
     "hero.viewListing": "Переглянути",
     "hero.title": "Запчастини, техніка та матеріали — для робочих ферм.",
     "hero.subtitle":
-      "Оригінальні запчастини до тракторів, системи поливу, обприскувачі та насіння від перевірених продавців. Зроблено для фермерів, агрономів і кооперативів.",
+      "Запчастини до тракторів, системи поливу, обприскувачі та насіння від продавців у регіоні.",
     "hero.searchPlaceholder": "Артикул, бренд або культура…",
     "hero.searchCta": "Шукати",
     "hero.stat.sellers": "Перевірені продавці",
@@ -331,10 +388,10 @@ const dict = {
     "hero.stat.regions": "Регіонів",
 
     "cats.title": "За категоріями",
-    "cats.subtitle": "Усе для сезону від перевірених постачальників.",
+    "cats.subtitle": "Оберіть категорію, щоб звузити каталог.",
 
-    "listings.title": "Рекомендовані",
-    "listings.subtitle": "Відібрані пропозиції від найкращих продавців тижня.",
+    "listings.title": "Останні оголошення",
+    "listings.subtitle": "Запчастини, доступні зараз на Spare Hub.",
     "listings.viewAll": "Усі оголошення",
     "listings.inStock": "В наявності",
     "listings.lowStock": "Закінчується",
@@ -401,6 +458,7 @@ const dict = {
     "browse.condition.new": "Новий",
     "browse.condition.used": "Вживаний",
     "browse.condition.refurb": "Відновлений",
+    "browse.condition.all": "Будь-який стан",
 
     "cat.tractor": "Запчастини для тракторів",
     "cat.tractor.desc": "Двигун, гідравліка, фільтри, паси",
@@ -424,7 +482,7 @@ const dict = {
     "listing.spec.stock": "Наявність",
     "listing.spec.sku": "Артикул",
     "listing.description": "Опис",
-    "listing.description.body": "Від перевіреного продавця. Сумісність, стан і доставка підтверджені перед публікацією. Напишіть продавцю щодо рахунку, доставки та оптових цін.",
+    "listing.description.body": "Опис для цього оголошення не надано.",
     "listing.seller": "Продавець",
     "listing.seller.viewProfile": "Профіль продавця",
     "listing.shipping": "Доставка і повернення",
@@ -434,6 +492,35 @@ const dict = {
     "listing.call": "Зателефонувати",
     "listing.save": "Зберегти",
     "listing.share": "Поділитися",
+    "listing.placeOrder": "Оформити замовлення",
+    "listing.placeOrder.qty": "Кількість",
+    "qty.decrease": "Зменшити кількість",
+    "qty.increase": "Збільшити кількість",
+    "listing.placeOrder.success": "Замовлення оформлено",
+    "listing.placeOrder.error": "Не вдалося оформити замовлення. Спробуйте ще раз.",
+    "listing.placeOrder.unavailable": "Цього оголошення немає в наявності.",
+    "listing.addToCart": "До кошика",
+    "listing.addToCart.success": "Додано до кошика",
+    "listing.viewCart": "Перейти до кошика",
+    "cart.title": "Ваш кошик",
+    "cart.subtitle": "Перевірте позиції, потім оформіть одне замовлення.",
+    "cart.emptyTitle": "Кошик порожній",
+    "cart.emptyBody": "Перегляньте оголошення та додайте потрібні запчастини.",
+    "cart.remove": "Прибрати",
+    "cart.checkout": "Оформити замовлення",
+    "cart.checkout.success": "Замовлення оформлено",
+    "cart.checkout.error": "Не вдалося оформити замовлення. Спробуйте ще раз.",
+    "cart.total": "Разом",
+    "cart.totalItems": "{count} позицій",
+    "nav.cart": "Кошик",
+    "listing.gallery.close": "Закрити галерею",
+    "listing.gallery.counter": "{current} з {total}",
+    "listing.gallery.next": "Наступне фото",
+    "listing.gallery.open": "Відкрити галерею фото",
+    "listing.gallery.previous": "Попереднє фото",
+    "listing.gallery.reset": "Скинути масштаб",
+    "listing.gallery.zoomIn": "Збільшити",
+    "listing.gallery.zoomOut": "Зменшити",
     "listing.notFound.title": "Оголошення не знайдено",
     "listing.notFound.body": "Це оголошення видалено або ніколи не існувало.",
 
@@ -483,8 +570,13 @@ const dict = {
     "sell.field.title.ph": "напр. Гідронасос John Deere 6M — OEM",
     "sell.field.brand": "Бренд або виробник",
     "sell.field.brand.ph": "John Deere, Case IH, Netafim…",
+    "sell.field.category": "Категорія",
+    "sell.field.category.placeholder": "Оберіть категорію",
     "sell.field.condition": "Стан",
     "sell.field.description": "Опис",
+    "sell.field.description.bold": "Жирний",
+    "sell.field.description.italic": "Курсив",
+    "sell.field.description.list": "Маркований список",
     "sell.field.description.ph": "Сумісність, рік, мотогодини, дефекти. Чесність продає.",
     "sell.field.location": "Розташування",
     "sell.field.location.ph": "Місто, країна",
@@ -494,7 +586,11 @@ const dict = {
     "sell.field.stock.in": "В наявності",
     "sell.field.stock.low": "Закінчується",
     "sell.field.photos": "Фото",
+    "sell.field.photos.add": "Додати фото",
+    "sell.field.photos.delete": "Видалити фото",
+    "sell.field.photos.error": "Не вдалося оновити фото. Спробуйте ще раз.",
     "sell.field.photos.hint": "Перетягніть зображення або натисніть, щоб завантажити. Перше фото — обкладинка.",
+    "sell.field.photos.uploaded": "Фото додано",
     "sell.review.published": "Оголошення опубліковано",
     "sell.review.publishedBody": "Ваше оголошення активне на Spare Hub.",
     "sell.review.viewListings": "Мої оголошення",
@@ -508,8 +604,26 @@ const dict = {
     "account.save": "Зберегти зміни",
     "account.nav.profile": "Профіль",
     "account.nav.listings": "Мої оголошення",
+    "account.nav.orders": "Замовлення",
     "account.nav.favorites": "Обране",
     "account.nav.settings": "Налаштування",
+    "account.orders.back": "До замовлень",
+    "account.orders.cancel": "Скасувати замовлення",
+    "account.orders.cancelConfirm.body": "Продавець побачить замовлення як скасоване.",
+    "account.orders.cancelConfirm.title": "Скасувати це замовлення?",
+    "account.orders.cancelled": "Замовлення скасовано",
+    "account.orders.detail.items": "Позиції",
+    "account.orders.detail.placed": "Оформлено",
+    "account.orders.detail.title": "Замовлення №{id}",
+    "account.orders.emptyBody": "Коли ви оформите замовлення з оголошення, воно з'явиться тут.",
+    "account.orders.emptyTitle": "Замовлень ще немає",
+    "account.orders.status.cancelled": "Скасовано",
+    "account.orders.status.paid": "Оплачено",
+    "account.orders.status.pending": "Очікує",
+    "account.orders.subtitle": "Замовлення, які ви оформили на Spare Hub.",
+    "account.orders.summary": "{name} · {count} поз.",
+    "account.orders.title": "Ваші замовлення",
+    "account.orders.view": "Переглянути",
     "account.profile.title": "Ваш профіль",
     "account.profile.subtitle": "Так вас бачать покупці й продавці на Spare Hub.",
     "account.field.displayName": "Відображуване ім'я",
@@ -623,18 +737,27 @@ export const LANGS: { code: Lang; label: string; native: string }[] = [
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>("en");
-
-  useEffect(() => {
-    const stored = (typeof window !== "undefined" && localStorage.getItem(KEY)) as Lang | null;
-    if (stored === "en" || stored === "uk") setLang(stored);
-  }, []);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
-      localStorage.setItem(KEY, lang);
-    } catch {}
-    if (typeof document !== "undefined") document.documentElement.lang = lang;
-  }, [lang]);
+      const stored = window.localStorage.getItem(KEY) as Lang | null;
+      if (stored === "en" || stored === "uk") setLang(stored);
+    } catch {
+      // ignore
+    }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      window.localStorage.setItem(KEY, lang);
+    } catch {
+      // ignore
+    }
+    document.documentElement.lang = lang;
+  }, [lang, hydrated]);
 
   const value = useMemo<Ctx>(
     () => ({

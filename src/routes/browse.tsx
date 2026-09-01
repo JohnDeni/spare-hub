@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import { ComingSoon } from "@/components/coming-soon";
 import { SiteLayout } from "@/components/site-layout";
 import { ListingCard } from "@/components/listing-card";
@@ -12,73 +13,175 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/lib/i18n";
 import { routeVisibility } from "@/lib/route-visibility";
-import { categories } from "@/lib/listings";
-import { productQueries } from "@/features/products/queries";
-import { productsToDisplay } from "@/features/products/display";
-import { Search, SlidersHorizontal } from "lucide-react";
-import { useMemo, useState } from "react";
+import { productKeys } from "@/features/products/queries";
+import { listProducts } from "@/features/products/client";
+import { productsToDisplay, uiConditionToApi } from "@/features/products/display";
+import type { ProductConditionUi, ProductListParams } from "@/features/products/types";
+import { categoryQueries } from "@/features/categories/queries";
+import { categoryEmoji, slugifyCategory } from "@/features/categories/display";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { Package, Search, SlidersHorizontal } from "lucide-react";
+
+type SortKey = "relevance" | "priceAsc" | "priceDesc" | "newest";
+type ConditionFilter = "all" | ProductConditionUi;
+
+type BrowseSearch = {
+  q?: string;
+  condition?: ConditionFilter;
+  sort?: SortKey;
+  category?: string;
+};
+
+function parseCondition(v: unknown): ConditionFilter | undefined {
+  if (v === "new" || v === "used" || v === "refurb") return v;
+  return undefined;
+}
+
+function parseSort(v: unknown): SortKey | undefined {
+  if (v === "priceAsc" || v === "priceDesc" || v === "newest") return v;
+  return undefined;
+}
+
+function toListParams(
+  args: {
+    q?: string;
+    condition?: ConditionFilter;
+    sort?: SortKey;
+    categorySlug?: string;
+  },
+  categories: { id: number; name: string }[],
+): ProductListParams {
+  const params: ProductListParams = {};
+  const q = args.q?.trim();
+  if (q) params.search = q;
+  if (args.condition && args.condition !== "all") {
+    params.condition = uiConditionToApi(args.condition);
+  }
+  if (args.sort === "priceAsc") params.ordering = "price";
+  else if (args.sort === "priceDesc") params.ordering = "-price";
+  else if (args.sort === "newest") params.ordering = "-created_at";
+  if (args.categorySlug && args.categorySlug !== "all") {
+    const match = categories.find((c) => slugifyCategory(c.name) === args.categorySlug);
+    if (match) params.category = match.id;
+  }
+  return params;
+}
 
 export const Route = createFileRoute("/browse")({
-  loader: ({ context: { queryClient } }) =>
-    queryClient.ensureQueryData(productQueries.list()),
+  validateSearch: (search: Record<string, unknown>): BrowseSearch => ({
+    q: typeof search.q === "string" ? search.q : undefined,
+    condition: parseCondition(search.condition),
+    sort: parseSort(search.sort),
+    category: typeof search.category === "string" ? search.category : undefined,
+  }),
+  loader: async ({ context: { queryClient } }) => {
+    const categories = await queryClient.ensureQueryData(categoryQueries.list());
+    return { categories };
+  },
   component: Browse,
 });
 
-type Condition = "new" | "used" | "refurb";
-type SortKey = "relevance" | "priceAsc" | "priceDesc" | "newest";
-
 function Browse() {
-  if (!routeVisibility.backend.productsApiReady) return <ComingSoon showBrowse={false} />;
   const { t } = useI18n();
-  const products = Route.useLoaderData();
-  const displays = productsToDisplay(products);
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<string>("all");
-  const [conds, setConds] = useState<Record<Condition, boolean>>({
-    new: false,
-    used: false,
-    refurb: false,
-  });
-  const [sort, setSort] = useState<SortKey>("relevance");
+  const navigate = useNavigate({ from: "/browse" });
+  const { categories } = Route.useLoaderData();
+  const search = Route.useSearch();
 
-  const activeConds = (Object.keys(conds) as Condition[]).filter((k) => conds[k]);
-  const hasFilters = query !== "" || category !== "all" || activeConds.length > 0;
+  const condition = search.condition ?? "all";
+  const sort = search.sort ?? "relevance";
+  const categorySlug = search.category ?? "all";
 
-  const filtered = useMemo(() => {
-    let out = displays.filter((l) => {
-      if (category !== "all" && l.mock.category !== category) return false;
-      if (activeConds.length && !activeConds.includes(l.condition)) return false;
-      if (query) {
-        const q = query.toLowerCase();
-        return (
-          l.name.toLowerCase().includes(q) ||
-          l.description.toLowerCase().includes(q) ||
-          l.brand.toLowerCase().includes(q) ||
-          l.mock.location.toLowerCase().includes(q)
-        );
-      }
-      return true;
+  const [queryDraft, setQueryDraft] = useState(() => search.q ?? "");
+  const debouncedQuery = useDebouncedValue(queryDraft, 200);
+  /** Last `q` we wrote to the URL — ignore echo updates from our own navigate. */
+  const lastPushedQ = useRef((search.q ?? "").trim());
+
+  // Push debounced text to the URL (shareable), without reading it back into the input.
+  useEffect(() => {
+    const next = debouncedQuery.trim();
+    if (next === lastPushedQ.current) return;
+    lastPushedQ.current = next;
+    void navigate({
+      replace: true,
+      search: (prev) => ({
+        ...prev,
+        q: next || undefined,
+      }),
     });
-    if (sort === "priceAsc") out = [...out].sort((a, b) => a.price - b.price);
-    if (sort === "priceDesc") out = [...out].sort((a, b) => b.price - a.price);
-    if (sort === "newest") {
-      out = [...out].sort(
-        (a, b) =>
-          new Date(b.product.created_at).getTime() - new Date(a.product.created_at).getTime(),
-      );
-    }
-    return out;
-  }, [displays, query, category, activeConds.join(","), sort]);
+  }, [debouncedQuery, navigate]);
+
+  // Apply external URL changes only (back/forward, clear from elsewhere).
+  useEffect(() => {
+    const urlQ = (search.q ?? "").trim();
+    if (urlQ === lastPushedQ.current) return;
+    lastPushedQ.current = urlQ;
+    setQueryDraft(urlQ);
+  }, [search.q]);
+
+  const listParams = toListParams(
+    {
+      q: debouncedQuery,
+      condition,
+      sort,
+      categorySlug,
+    },
+    categories,
+  );
+
+  const { data: listResult, isFetching } = useQuery({
+    queryKey: productKeys.list(listParams),
+    queryFn: () => listProducts(listParams),
+    enabled: routeVisibility.backend.productsApiReady,
+    placeholderData: keepPreviousData,
+  });
+
+  if (!routeVisibility.backend.productsApiReady) return <ComingSoon showBrowse={false} />;
+
+  const displays = productsToDisplay(listResult?.products);
+  const resultCount = listResult?.count ?? 0;
+
+  const hasFilters =
+    debouncedQuery.trim() !== "" ||
+    categorySlug !== "all" ||
+    condition !== "all" ||
+    sort !== "relevance";
+
+  const selectedCategory = categories.find((c) => slugifyCategory(c.name) === categorySlug);
+
+  const patchSearch = (patch: Partial<BrowseSearch>) => {
+    void navigate({
+      search: (prev) => ({
+        q: patch.q !== undefined ? patch.q || undefined : prev.q,
+        condition:
+          patch.condition !== undefined
+            ? patch.condition === "all"
+              ? undefined
+              : patch.condition
+            : prev.condition,
+        sort:
+          patch.sort !== undefined
+            ? patch.sort === "relevance"
+              ? undefined
+              : patch.sort
+            : prev.sort,
+        category:
+          patch.category !== undefined
+            ? patch.category === "all"
+              ? undefined
+              : patch.category
+            : prev.category,
+      }),
+    });
+  };
 
   const clear = () => {
-    setQuery("");
-    setCategory("all");
-    setConds({ new: false, used: false, refurb: false });
-    setSort("relevance");
+    lastPushedQ.current = "";
+    setQueryDraft("");
+    void navigate({ search: {} });
   };
 
   return (
@@ -92,15 +195,18 @@ function Browse() {
 
           <div className="mt-5 flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                type="search"
+                value={queryDraft}
+                onChange={(e) => setQueryDraft(e.target.value)}
                 placeholder={t("hero.searchPlaceholder")}
                 className="pl-10 h-11 bg-background"
+                autoComplete="off"
+                aria-label={t("hero.searchPlaceholder")}
               />
             </div>
-            <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+            <Select value={sort} onValueChange={(v) => patchSearch({ sort: v as SortKey })}>
               <SelectTrigger className="sm:w-56 h-11 bg-background">
                 <SelectValue placeholder={t("browse.sort")} />
               </SelectTrigger>
@@ -128,69 +234,95 @@ function Browse() {
               )}
             </div>
 
-            <div>
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground mb-2 block">
-                {t("cats.title")}
-              </Label>
-              <div className="space-y-1">
-                <button
-                  onClick={() => setCategory("all")}
-                  className={`w-full text-left rounded-md px-2.5 py-1.5 text-sm transition ${
-                    category === "all" ? "bg-accent/10 font-medium text-foreground" : "hover:bg-accent/5 text-muted-foreground"
-                  }`}
-                >
-                  {t("browse.category.all")}
-                </button>
-                {categories.map((c) => (
+            {routeVisibility.backend.categoriesApiReady ? (
+              <div>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground mb-2 block">
+                  {t("cats.title")}
+                </Label>
+                <div className="space-y-1">
                   <button
-                    key={c.key}
-                    onClick={() => setCategory(c.key)}
-                    className={`w-full text-left flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition ${
-                      category === c.key ? "bg-accent/10 font-medium text-foreground" : "hover:bg-accent/5 text-muted-foreground"
+                    type="button"
+                    onClick={() => patchSearch({ category: "all" })}
+                    className={`w-full text-left rounded-md px-2.5 py-1.5 text-sm transition ${
+                      categorySlug === "all"
+                        ? "bg-accent/10 font-medium text-foreground"
+                        : "hover:bg-accent/5 text-muted-foreground"
                     }`}
                   >
-                    <span>{c.emoji}</span>
-                    <span className="flex-1">{t(`cat.${c.key}` as const)}</span>
-                    <span className="text-xs opacity-60">{c.count}</span>
+                    {t("browse.category.all")}
                   </button>
-                ))}
+                  {categories.map((c) => {
+                    const slug = slugifyCategory(c.name);
+                    const emoji = categoryEmoji(c);
+                    return (
+                      <button
+                        type="button"
+                        key={c.id}
+                        onClick={() => patchSearch({ category: slug })}
+                        className={`w-full text-left flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition ${
+                          categorySlug === slug
+                            ? "bg-accent/10 font-medium text-foreground"
+                            : "hover:bg-accent/5 text-muted-foreground"
+                        }`}
+                      >
+                        {emoji ? (
+                          <span>{emoji}</span>
+                        ) : (
+                          <Package className="h-4 w-4 shrink-0" />
+                        )}
+                        <span className="flex-1 truncate">{c.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ) : null}
 
             <div>
               <Label className="text-xs uppercase tracking-wide text-muted-foreground mb-2 block">
                 {t("browse.condition")}
               </Label>
-              <div className="space-y-2">
-                {(["new", "used", "refurb"] as Condition[]).map((c) => (
-                  <label key={c} className="flex items-center gap-2 text-sm cursor-pointer">
-                    <Checkbox
-                      checked={conds[c]}
-                      onCheckedChange={(v) => setConds((p) => ({ ...p, [c]: !!v }))}
-                    />
-                    {t(`browse.condition.${c}` as const)}
-                  </label>
-                ))}
-              </div>
+              <Select
+                value={condition}
+                onValueChange={(v) => patchSearch({ condition: v as ConditionFilter })}
+              >
+                <SelectTrigger className="h-10 bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("browse.condition.all")}</SelectItem>
+                  <SelectItem value="new">{t("browse.condition.new")}</SelectItem>
+                  <SelectItem value="used">{t("browse.condition.used")}</SelectItem>
+                  <SelectItem value="refurb">{t("browse.condition.refurb")}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </aside>
 
           <div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-              <span>{t("browse.results").replace("{count}", String(filtered.length))}</span>
-              {category !== "all" && (
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-4">
+              <span>
+                {t("browse.results").replace("{count}", String(resultCount))}
+                {isFetching ? "…" : ""}
+              </span>
+              {debouncedQuery.trim() ? (
                 <Badge variant="secondary" className="font-normal">
-                  {t(`cat.${category}` as const)}
+                  {debouncedQuery.trim()}
                 </Badge>
-              )}
-              {activeConds.map((c) => (
-                <Badge key={c} variant="secondary" className="font-normal capitalize">
-                  {t(`browse.condition.${c}` as const)}
+              ) : null}
+              {selectedCategory ? (
+                <Badge variant="secondary" className="font-normal">
+                  {selectedCategory.name}
                 </Badge>
-              ))}
+              ) : null}
+              {condition !== "all" ? (
+                <Badge variant="secondary" className="font-normal capitalize">
+                  {t(`browse.condition.${condition}` as const)}
+                </Badge>
+              ) : null}
             </div>
 
-            {filtered.length === 0 ? (
+            {displays.length === 0 ? (
               <div className="text-center py-20 border border-dashed border-border rounded-xl">
                 <p className="text-muted-foreground">{t("browse.empty")}</p>
                 <Button variant="outline" size="sm" onClick={clear} className="mt-4">
@@ -199,7 +331,7 @@ function Browse() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filtered.map((l) => (
+                {displays.map((l) => (
                   <ListingCard key={l.id} listing={l} />
                 ))}
               </div>

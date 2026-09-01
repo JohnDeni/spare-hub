@@ -15,6 +15,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as CartRouteImport } from './routes/cart'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AboutRouteImport } from './routes/about'
@@ -29,9 +30,12 @@ import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalCookiesRouteImport } from './routes/legal.cookies'
 import { Route as CCategoryRouteImport } from './routes/c.$category'
 import { Route as AccountSettingsRouteImport } from './routes/account.settings'
+import { Route as AccountOrdersRouteImport } from './routes/account.orders'
 import { Route as AccountListingsRouteImport } from './routes/account.listings'
 import { Route as AccountFavoritesRouteImport } from './routes/account.favorites'
+import { Route as AccountOrdersIndexRouteImport } from './routes/account.orders.index'
 import { Route as SellIdEditRouteImport } from './routes/sell.$id.edit'
+import { Route as AccountOrdersOrderIdRouteImport } from './routes/account.orders.$orderId'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -61,6 +65,11 @@ const HowItWorksRoute = HowItWorksRouteImport.update({
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CartRoute = CartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BrowseRoute = BrowseRouteImport.update({
@@ -133,6 +142,11 @@ const AccountSettingsRoute = AccountSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AccountRoute,
 } as any)
+const AccountOrdersRoute = AccountOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AccountRoute,
+} as any)
 const AccountListingsRoute = AccountListingsRouteImport.update({
   id: '/listings',
   path: '/listings',
@@ -143,10 +157,20 @@ const AccountFavoritesRoute = AccountFavoritesRouteImport.update({
   path: '/favorites',
   getParentRoute: () => AccountRoute,
 } as any)
+const AccountOrdersIndexRoute = AccountOrdersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AccountOrdersRoute,
+} as any)
 const SellIdEditRoute = SellIdEditRouteImport.update({
   id: '/sell/$id/edit',
   path: '/sell/$id/edit',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AccountOrdersOrderIdRoute = AccountOrdersOrderIdRouteImport.update({
+  id: '/$orderId',
+  path: '/$orderId',
+  getParentRoute: () => AccountOrdersRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -154,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/account': typeof AccountRouteWithChildren
   '/browse': typeof BrowseRoute
+  '/cart': typeof CartRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
@@ -162,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/account/favorites': typeof AccountFavoritesRoute
   '/account/listings': typeof AccountListingsRoute
+  '/account/orders': typeof AccountOrdersRouteWithChildren
   '/account/settings': typeof AccountSettingsRoute
   '/c/$category': typeof CCategoryRoute
   '/legal/cookies': typeof LegalCookiesRoute
@@ -172,12 +198,15 @@ export interface FileRoutesByFullPath {
   '/sellers/$slug': typeof SellersSlugRoute
   '/account/': typeof AccountIndexRoute
   '/sell/': typeof SellIndexRoute
+  '/account/orders/$orderId': typeof AccountOrdersOrderIdRoute
   '/sell/$id/edit': typeof SellIdEditRoute
+  '/account/orders/': typeof AccountOrdersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/browse': typeof BrowseRoute
+  '/cart': typeof CartRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
@@ -196,7 +225,9 @@ export interface FileRoutesByTo {
   '/sellers/$slug': typeof SellersSlugRoute
   '/account': typeof AccountIndexRoute
   '/sell': typeof SellIndexRoute
+  '/account/orders/$orderId': typeof AccountOrdersOrderIdRoute
   '/sell/$id/edit': typeof SellIdEditRoute
+  '/account/orders': typeof AccountOrdersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -204,6 +235,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/account': typeof AccountRouteWithChildren
   '/browse': typeof BrowseRoute
+  '/cart': typeof CartRoute
   '/help': typeof HelpRoute
   '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
@@ -212,6 +244,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/account/favorites': typeof AccountFavoritesRoute
   '/account/listings': typeof AccountListingsRoute
+  '/account/orders': typeof AccountOrdersRouteWithChildren
   '/account/settings': typeof AccountSettingsRoute
   '/c/$category': typeof CCategoryRoute
   '/legal/cookies': typeof LegalCookiesRoute
@@ -222,7 +255,9 @@ export interface FileRoutesById {
   '/sellers/$slug': typeof SellersSlugRoute
   '/account/': typeof AccountIndexRoute
   '/sell/': typeof SellIndexRoute
+  '/account/orders/$orderId': typeof AccountOrdersOrderIdRoute
   '/sell/$id/edit': typeof SellIdEditRoute
+  '/account/orders/': typeof AccountOrdersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -231,6 +266,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/browse'
+    | '/cart'
     | '/help'
     | '/how-it-works'
     | '/login'
@@ -239,6 +275,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/account/favorites'
     | '/account/listings'
+    | '/account/orders'
     | '/account/settings'
     | '/c/$category'
     | '/legal/cookies'
@@ -249,12 +286,15 @@ export interface FileRouteTypes {
     | '/sellers/$slug'
     | '/account/'
     | '/sell/'
+    | '/account/orders/$orderId'
     | '/sell/$id/edit'
+    | '/account/orders/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/browse'
+    | '/cart'
     | '/help'
     | '/how-it-works'
     | '/login'
@@ -273,13 +313,16 @@ export interface FileRouteTypes {
     | '/sellers/$slug'
     | '/account'
     | '/sell'
+    | '/account/orders/$orderId'
     | '/sell/$id/edit'
+    | '/account/orders'
   id:
     | '__root__'
     | '/'
     | '/about'
     | '/account'
     | '/browse'
+    | '/cart'
     | '/help'
     | '/how-it-works'
     | '/login'
@@ -288,6 +331,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/account/favorites'
     | '/account/listings'
+    | '/account/orders'
     | '/account/settings'
     | '/c/$category'
     | '/legal/cookies'
@@ -298,7 +342,9 @@ export interface FileRouteTypes {
     | '/sellers/$slug'
     | '/account/'
     | '/sell/'
+    | '/account/orders/$orderId'
     | '/sell/$id/edit'
+    | '/account/orders/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -306,6 +352,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRouteWithChildren
   BrowseRoute: typeof BrowseRoute
+  CartRoute: typeof CartRoute
   HelpRoute: typeof HelpRoute
   HowItWorksRoute: typeof HowItWorksRoute
   LoginRoute: typeof LoginRoute
@@ -365,6 +412,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cart': {
+      id: '/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof CartRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/browse': {
@@ -465,6 +519,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountSettingsRouteImport
       parentRoute: typeof AccountRoute
     }
+    '/account/orders': {
+      id: '/account/orders'
+      path: '/orders'
+      fullPath: '/account/orders'
+      preLoaderRoute: typeof AccountOrdersRouteImport
+      parentRoute: typeof AccountRoute
+    }
     '/account/listings': {
       id: '/account/listings'
       path: '/listings'
@@ -479,6 +540,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountFavoritesRouteImport
       parentRoute: typeof AccountRoute
     }
+    '/account/orders/': {
+      id: '/account/orders/'
+      path: '/'
+      fullPath: '/account/orders/'
+      preLoaderRoute: typeof AccountOrdersIndexRouteImport
+      parentRoute: typeof AccountOrdersRoute
+    }
     '/sell/$id/edit': {
       id: '/sell/$id/edit'
       path: '/sell/$id/edit'
@@ -486,12 +554,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SellIdEditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account/orders/$orderId': {
+      id: '/account/orders/$orderId'
+      path: '/$orderId'
+      fullPath: '/account/orders/$orderId'
+      preLoaderRoute: typeof AccountOrdersOrderIdRouteImport
+      parentRoute: typeof AccountOrdersRoute
+    }
   }
 }
+
+interface AccountOrdersRouteChildren {
+  AccountOrdersOrderIdRoute: typeof AccountOrdersOrderIdRoute
+  AccountOrdersIndexRoute: typeof AccountOrdersIndexRoute
+}
+
+const AccountOrdersRouteChildren: AccountOrdersRouteChildren = {
+  AccountOrdersOrderIdRoute: AccountOrdersOrderIdRoute,
+  AccountOrdersIndexRoute: AccountOrdersIndexRoute,
+}
+
+const AccountOrdersRouteWithChildren = AccountOrdersRoute._addFileChildren(
+  AccountOrdersRouteChildren,
+)
 
 interface AccountRouteChildren {
   AccountFavoritesRoute: typeof AccountFavoritesRoute
   AccountListingsRoute: typeof AccountListingsRoute
+  AccountOrdersRoute: typeof AccountOrdersRouteWithChildren
   AccountSettingsRoute: typeof AccountSettingsRoute
   AccountIndexRoute: typeof AccountIndexRoute
 }
@@ -499,6 +589,7 @@ interface AccountRouteChildren {
 const AccountRouteChildren: AccountRouteChildren = {
   AccountFavoritesRoute: AccountFavoritesRoute,
   AccountListingsRoute: AccountListingsRoute,
+  AccountOrdersRoute: AccountOrdersRouteWithChildren,
   AccountSettingsRoute: AccountSettingsRoute,
   AccountIndexRoute: AccountIndexRoute,
 }
@@ -511,6 +602,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AccountRoute: AccountRouteWithChildren,
   BrowseRoute: BrowseRoute,
+  CartRoute: CartRoute,
   HelpRoute: HelpRoute,
   HowItWorksRoute: HowItWorksRoute,
   LoginRoute: LoginRoute,

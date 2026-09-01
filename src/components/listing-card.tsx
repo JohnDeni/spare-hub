@@ -1,7 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { BadgeCheck, MapPin, Star } from "lucide-react";
+import { Package } from "lucide-react";
 import type { ProductDisplay } from "@/features/products/display";
 import { currencySymbol } from "@/features/products/display";
 import { useI18n } from "@/lib/i18n";
@@ -9,7 +8,8 @@ import { Link } from "@tanstack/react-router";
 
 export function ListingCard({ listing }: { listing: ProductDisplay }) {
   const { t } = useI18n();
-  const { mock } = listing;
+  const showSeller = Boolean(listing.sellerName) && !listing.sellerIsPreview;
+
   return (
     <Link
       to="/listings/$id"
@@ -17,16 +17,16 @@ export function ListingCard({ listing }: { listing: ProductDisplay }) {
       className="block group focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl"
     >
       <Card className="overflow-hidden border-border/70 transition-all group-hover:border-accent/60 group-hover:shadow-md h-full">
-        <div className="aspect-[4/3] bg-gradient-to-br from-secondary to-muted flex items-center justify-center relative">
-          <span className="text-6xl select-none transition-transform group-hover:scale-110">{mock.emoji}</span>
-          <div className="absolute top-3 left-3 flex gap-1.5">
-            {mock.verified && (
-              <Badge variant="secondary" className="bg-background/90 text-foreground border border-border/60 gap-1 backdrop-blur">
-                <BadgeCheck className="h-3 w-3 text-accent" />
-                {t("listings.verified")}
-              </Badge>
-            )}
-          </div>
+        <div className="aspect-[4/3] bg-gradient-to-br from-secondary to-muted flex items-center justify-center relative overflow-hidden">
+          {listing.coverImageUrl ? (
+            <img
+              src={listing.coverImageUrl}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+            />
+          ) : (
+            <Package className="h-14 w-14 text-muted-foreground/50 transition-transform group-hover:scale-105" />
+          )}
           <div className="absolute top-3 right-3">
             <Badge
               className={
@@ -41,37 +41,25 @@ export function ListingCard({ listing }: { listing: ProductDisplay }) {
         </div>
         <CardContent className="p-4">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-medium uppercase tracking-wide">{listing.brand}</span>
+            <span className="font-medium uppercase tracking-wide truncate">{listing.brand}</span>
             <span>·</span>
-            <span className="capitalize">{t(`browse.condition.${listing.condition}` as const)}</span>
+            <span className="capitalize shrink-0">
+              {t(`browse.condition.${listing.condition}` as const)}
+            </span>
           </div>
           <h3 className="mt-1.5 font-display text-base font-semibold leading-snug line-clamp-2 min-h-[2.75rem]">
             {listing.name}
           </h3>
-          <div className="mt-2 flex items-center gap-3 text-xs text-[color:var(--mock-foreground)]">
-            <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {mock.location}</span>
-            <span className="flex items-center gap-1"><Star className="h-3 w-3 fill-[color:var(--gold)] text-[color:var(--gold)]" /> {mock.rating} <span className="opacity-60">({mock.reviews})</span></span>
-          </div>
-          <div className="mt-4 flex items-end justify-between">
-            <div>
-              <div className="font-display text-xl font-semibold tracking-tight">
-                {currencySymbol(listing.currency)}{listing.price.toLocaleString()}
-              </div>
-              <div className={`text-xs truncate max-w-[10rem] ${listing.sellerIsPreview ? "text-[color:var(--mock-foreground)]" : "text-muted-foreground"}`}>
+          <div className="mt-4">
+            <div className="font-display text-xl font-semibold tracking-tight">
+              {currencySymbol(listing.currency)}
+              {listing.price.toLocaleString()}
+            </div>
+            {showSeller ? (
+              <div className="text-xs text-muted-foreground truncate max-w-full mt-0.5">
                 {listing.sellerName}
               </div>
-            </div>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="shrink-0"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-            >
-              {t("listings.contact")}
-            </Button>
+            ) : null}
           </div>
         </CardContent>
       </Card>

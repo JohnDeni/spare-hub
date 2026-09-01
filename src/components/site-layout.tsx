@@ -1,11 +1,12 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Moon, Sun, Globe, Menu, X, LogOut, User as UserIcon } from "lucide-react";
+import { Moon, Sun, Globe, Menu, X, LogOut, User as UserIcon, ShoppingCart } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { useState } from "react";
 import { useTheme } from "@/lib/theme";
 import { useI18n, LANGS, type Lang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/auth-context";
+import { useCart } from "@/features/cart/cart-context";
 import { canManageProducts } from "@/features/products/client";
 import { routeVisibility } from "@/lib/route-visibility";
 import {
@@ -24,6 +25,7 @@ export function SiteHeader() {
   const { theme, toggle } = useTheme();
   const { t, lang, setLang } = useI18n();
   const { status, user, logout } = useAuth();
+  const { itemCount } = useCart();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const isAuthed = status === "authenticated";
@@ -37,9 +39,14 @@ export function SiteHeader() {
     navigate({ to: "/" });
   };
 
-  const centerNavLinks = routeVisibility.header.about
-    ? [{ to: "/about", label: t("nav.about") }]
-    : [];
+  const centerNavLinks = [
+    ...(routeVisibility.header.browse && routeVisibility.backend.productsApiReady
+      ? [{ to: "/browse" as const, label: t("nav.browse") }]
+      : []),
+    ...(routeVisibility.header.about
+      ? [{ to: "/about" as const, label: t("nav.about") }]
+      : []),
+  ];
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -72,6 +79,18 @@ export function SiteHeader() {
               <Link to="/sell/new">{t("sell.cta")}</Link>
             </Button>
           ) : null}
+
+          <Button asChild variant="ghost" size="sm" className="relative gap-1.5" aria-label={t("nav.cart")}>
+            <Link to="/cart">
+              <ShoppingCart className="h-4 w-4" />
+              <span className="hidden sm:inline text-sm">{t("nav.cart")}</span>
+              {itemCount > 0 ? (
+                <span className="absolute -top-0.5 -right-0.5 sm:static sm:ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                  {itemCount > 99 ? "99+" : itemCount}
+                </span>
+              ) : null}
+            </Link>
+          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -161,6 +180,21 @@ export function SiteHeader() {
                 </Link>
               </Button>
             ) : null}
+            <Link
+              to="/cart"
+              onClick={() => setOpen(false)}
+              className="flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium hover:bg-accent/10"
+            >
+              <span className="inline-flex items-center gap-2">
+                <ShoppingCart className="h-4 w-4" />
+                {t("nav.cart")}
+              </span>
+              {itemCount > 0 ? (
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground">
+                  {itemCount}
+                </span>
+              ) : null}
+            </Link>
             {centerNavLinks.map((l) => (
               <Link
                 key={l.to}

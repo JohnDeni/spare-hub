@@ -5,27 +5,30 @@ import { ListingCard } from "@/components/listing-card";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import { routeVisibility } from "@/lib/route-visibility";
-import { listings, categories } from "@/lib/listings";
-import { mockListingToDisplay } from "@/features/products/display";
-import { ArrowLeft } from "lucide-react";
-
-const CATEGORY_KEYS = categories.map((c) => c.key) as readonly string[];
+import { productQueries } from "@/features/products/queries";
+import { productsToDisplay } from "@/features/products/display";
+import { categoryQueries } from "@/features/categories/queries";
+import { findCategoryBySlug } from "@/features/categories/display";
+import { ArrowLeft, Package } from "lucide-react";
 
 export const Route = createFileRoute("/c/$category")({
-  loader: ({ params }) => {
-    if (!CATEGORY_KEYS.includes(params.category)) throw notFound();
-    return { category: params.category as (typeof categories)[number]["key"] };
+  loader: async ({ params, context: { queryClient } }) => {
+    const categories = await queryClient.ensureQueryData(categoryQueries.list());
+    const category = findCategoryBySlug(categories, params.category);
+    if (!category) throw notFound();
+    const listResult = await queryClient.ensureQueryData(
+      productQueries.list({ category: category.id }),
+    );
+    return { category, products: listResult.products, count: listResult.count };
   },
   component: CategoryPage,
 });
 
 function CategoryPage() {
   if (!routeVisibility.backend.productsApiReady) return <ComingSoon showBrowse={false} />;
-  const { category } = Route.useLoaderData();
-  const { t, lang } = useI18n();
-
-  const meta = categories.find((c) => c.key === category)!;
-  const items = listings.filter((l) => l.category === category);
+  const { category, products, count } = Route.useLoaderData();
+  const { t } = useI18n();
+  const items = productsToDisplay(products);
 
   return (
     <SiteLayout>
@@ -39,16 +42,15 @@ function CategoryPage() {
             {t("nav.browse")}
           </Link>
           <div className="mt-4 flex items-center gap-4">
-            <div className="text-5xl">{meta.emoji}</div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary">
+              <Package className="h-6 w-6 text-muted-foreground" />
+            </div>
             <div>
               <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">
-                {t(`cat.${category}` as any)}
+                {category.name}
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t(`cat.${category}.desc` as any)}
-              </p>
               <p className="text-xs text-muted-foreground mt-2">
-                {items.length} {t("category.results")}
+                {count} {t("category.results")}
               </p>
             </div>
           </div>
@@ -59,14 +61,14 @@ function CategoryPage() {
         {items.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-border rounded-xl">
             <p className="text-muted-foreground">{t("category.empty")}</p>
-            <Button asChild variant="outline" size="sm" className="mt-4">
+            <Button asChild variant="outline" className="mt-4">
               <Link to="/browse">{t("nav.browse")}</Link>
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {items.map((l) => (
-              <ListingCard key={l.id} listing={mockListingToDisplay(l, lang)} />
+              <ListingCard key={l.id} listing={l} />
             ))}
           </div>
         )}

@@ -1,4 +1,5 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { ComingSoon } from "@/components/coming-soon";
 import { SiteLayout } from "@/components/site-layout";
 import { ListingCard } from "@/components/listing-card";
@@ -6,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import { QuantityStepper } from "@/components/quantity-stepper";
+import { DescriptionContent } from "@/components/description-content";
+import { ListingImageGallery } from "@/components/listing-image-gallery";
 import { useI18n } from "@/lib/i18n";
 import { routeVisibility } from "@/lib/route-visibility";
 import { listings } from "@/lib/listings";
@@ -19,20 +24,10 @@ import {
 } from "@/features/products/display";
 import { canManageProducts } from "@/features/products/client";
 import { useAuth } from "@/features/auth/auth-context";
+import { useCart } from "@/features/cart/cart-context";
 import { initials } from "@/lib/profile";
-import {
-  ArrowLeft,
-  BadgeCheck,
-  Heart,
-  MapPin,
-  MessageSquare,
-  Pencil,
-  Phone,
-  Share2,
-  Star,
-  Trash2,
-  Truck,
-} from "lucide-react";
+import { toast } from "sonner";
+import { ArrowLeft, Pencil, ShoppingCart, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/listings/$id")({
   loader: async ({ params, context: { queryClient } }) => {
@@ -42,8 +37,14 @@ export const Route = createFileRoute("/listings/$id")({
         const product = await queryClient.fetchQuery(productQueries.detail(numericId));
         const listing = productToDisplay(product);
         const all = await queryClient.ensureQueryData(productQueries.list());
-        const related = productsToDisplay(all)
-          .filter((l) => l.id !== listing.id && l.mock.category === listing.mock.category)
+        const related = productsToDisplay(all.products)
+          .filter(
+            (l) =>
+              l.id !== listing.id &&
+              (listing.categorySlug
+                ? l.categorySlug === listing.categorySlug
+                : l.mock.category === listing.mock.category),
+          )
           .slice(0, 4);
         return { listing, related, mockOnly: false as const };
       } catch (error) {
@@ -66,7 +67,7 @@ export const Route = createFileRoute("/listings/$id")({
           { title: `${loaderData.listing.name} — Spare Hub` },
           {
             name: "description",
-            content: `${loaderData.listing.brand} · ${loaderData.listing.mock.location} · from ${loaderData.listing.sellerName || "Spare Hub"}.`,
+            content: `${loaderData.listing.brand} · from ${loaderData.listing.sellerName || "Spare Hub"}.`,
           },
         ]
       : [{ title: "Listing — Spare Hub" }],
@@ -79,11 +80,46 @@ function ListingDetail() {
   if (!routeVisibility.backend.productsApiReady) return <ComingSoon showBrowse={false} />;
   const { listing, related, mockOnly } = Route.useLoaderData();
   const { t } = useI18n();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { data: mine = [] } = useMyProducts(canManageProducts(user) && !mockOnly);
   const isOwner = !mockOnly && mine.some((p) => p.id === listing.product.id);
-  const { mock } = listing;
+  const { addItem } = useCart();
+  const maxQty = Math.max(0, listing.quantity);
+  const [qty, setQty] = useState(maxQty > 0 ? 1 : 0);
+  const [activeImage, setActiveImage] = useState(0);
+  const showSeller = Boolean(listing.sellerName) && !listing.sellerIsPreview;
   const sellerInitials = initials(listing.sellerName, listing.sellerName);
+
+  const categoryLabel =
+    listing.categoryNames[0] ??
+    (listing.mock.category ? t(`cat.${listing.mock.category}` as const) : null);
+  const categoryIsApi = listing.categoryNames.length > 0;
+
+  const addToCart = () => {
+    if (mockOnly || isOwner) return;
+    if (!Number.isFinite(qty) || qty < 1 || qty > maxQty) {
+      toast.error(t("listing.placeOrder.unavailable"));
+      return;
+    }
+    addItem({
+      productId: listing.product.id,
+      name: listing.name,
+      brand: listing.brand,
+      price: listing.product.price,
+      currency: listing.currency,
+      maxQuantity: maxQty,
+      quantity: qty,
+    });
+    toast.success(t("listing.addToCart.success"), {
+      action: {
+        label: t("listing.viewCart"),
+        onClick: () => {
+          void navigate({ to: "/cart" });
+        },
+      },
+    });
+  };
 
   return (
     <SiteLayout>
@@ -104,7 +140,12 @@ function ListingDetail() {
                 {t("account.listings.actions.edit")}
               </Link>
             </Button>
-            <Button asChild variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-destructive hover:text-destructive"
+            >
               <Link to="/sell/$id/edit" params={{ id: listing.id }} search={{ delete: true }}>
                 <Trash2 className="h-4 w-4" />
                 {t("products.delete")}
@@ -115,76 +156,57 @@ function ListingDetail() {
 
         <div className="mt-6 grid lg:grid-cols-[1.4fr_1fr] gap-8">
           <div>
-            <div className="aspect-[4/3] rounded-2xl border border-border/70 bg-gradient-to-br from-secondary to-muted flex items-center justify-center relative overflow-hidden">
-              <span className="text-9xl select-none">{mock.emoji}</span>
-              <div className="absolute top-4 left-4 flex gap-2">
-                {mock.verified && (
-                  <Badge
-                    variant="secondary"
-                    className="bg-background/90 text-foreground border border-border/60 gap-1 backdrop-blur"
-                  >
-                    <BadgeCheck className="h-3.5 w-3.5 text-accent" />
-                    {t("listings.verified")}
-                  </Badge>
-                )}
-                <Badge
-                  className={
-                    listing.stock === "in"
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-[color:var(--gold)] text-[color:var(--gold-foreground)]"
-                  }
-                >
-                  {listing.stock === "in" ? t("listings.inStock") : t("listings.lowStock")}
-                </Badge>
-              </div>
-            </div>
+            <ListingImageGallery
+              imageUrls={listing.imageUrls}
+              activeIndex={activeImage}
+              onActiveIndexChange={setActiveImage}
+              stockLabel={listing.stock === "in" ? t("listings.inStock") : t("listings.lowStock")}
+              stockTone={listing.stock === "in" ? "in" : "low"}
+              title={listing.name}
+            />
 
             <section className="mt-10">
               <h2 className="font-display text-xl font-semibold">{t("listing.description")}</h2>
-              <p className="mt-3 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                {listing.description || t("listing.description.body")}
-              </p>
+              <div className="mt-3">
+                {listing.description ? (
+                  <DescriptionContent value={listing.description} />
+                ) : (
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {t("listing.description.body")}
+                  </p>
+                )}
+              </div>
             </section>
 
             <section className="mt-10">
               <h2 className="font-display text-xl font-semibold">{t("listing.specs")}</h2>
               <dl className="mt-4 grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
                 {[
-                  { k: t("listing.spec.brand"), v: listing.brand, mock: false },
-                  { k: t("listing.spec.condition"), v: t(`browse.condition.${listing.condition}` as const), mock: false },
-                  { k: t("listing.spec.category"), v: t(`cat.${mock.category}` as const), mock: true },
-                  { k: t("listing.spec.location"), v: mock.location, mock: true },
-                  { k: t("sell.field.currency"), v: listing.currency, mock: false },
+                  { k: t("listing.spec.brand"), v: listing.brand },
                   {
-                    k: t("products.quantity"),
-                    v: String(listing.quantity),
-                    mock: false,
+                    k: t("listing.spec.condition"),
+                    v: t(`browse.condition.${listing.condition}` as const),
                   },
+                  ...(categoryIsApi && categoryLabel
+                    ? [{ k: t("listing.spec.category"), v: categoryLabel }]
+                    : []),
+                  { k: t("sell.field.currency"), v: listing.currency },
+                  { k: t("products.quantity"), v: String(listing.quantity) },
                   {
                     k: t("listing.spec.stock"),
                     v: listing.stock === "in" ? t("listings.inStock") : t("listings.lowStock"),
-                    mock: false,
                   },
-                  { k: t("listing.spec.sku"), v: listing.id.toUpperCase(), mock: false },
+                  { k: t("listing.spec.sku"), v: listing.id },
                 ].map((row) => (
-                  <div key={row.k} className="flex justify-between gap-4 border-b border-border/50 py-2">
+                  <div
+                    key={row.k}
+                    className="flex justify-between gap-4 border-b border-border/50 py-2"
+                  >
                     <dt className="text-muted-foreground">{row.k}</dt>
-                    <dd
-                      className={`font-medium text-right ${row.mock ? "text-[color:var(--mock-foreground)] italic" : "text-foreground"}`}
-                    >
-                      {row.v}
-                    </dd>
+                    <dd className="font-medium text-right text-foreground">{row.v}</dd>
                   </div>
                 ))}
               </dl>
-            </section>
-
-            <section className="mt-10 flex items-start gap-3 rounded-xl border border-dashed border-[color:var(--mock)] bg-[color:var(--mock)]/10 p-4">
-              <Truck className="h-5 w-5 text-[color:var(--mock-foreground)] shrink-0 mt-0.5" />
-              <div>
-                <div className="font-medium text-sm text-[color:var(--mock-foreground)]">{t("listing.shipping")}</div>
-                <p className="text-sm text-[color:var(--mock-foreground)]/80 mt-1">{t("listing.shipping.body")}</p>
-              </div>
             </section>
           </div>
 
@@ -193,76 +215,71 @@ function ListingDetail() {
               <CardContent className="p-6">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="font-medium uppercase tracking-wide">{listing.brand}</span>
-                  <span>·</span>
-                  <Link
-                    to="/c/$category"
-                    params={{ category: mock.category }}
-                    className="text-[color:var(--mock-foreground)] hover:text-foreground"
-                  >
-                    {t(`cat.${mock.category}` as const)}
-                  </Link>
+                  {categoryIsApi && categoryLabel && listing.categorySlug ? (
+                    <>
+                      <span>·</span>
+                      <Link
+                        to="/c/$category"
+                        params={{ category: listing.categorySlug }}
+                        className="hover:text-foreground"
+                      >
+                        {categoryLabel}
+                      </Link>
+                    </>
+                  ) : null}
                 </div>
                 <h1 className="mt-2 font-display text-2xl font-semibold leading-tight tracking-tight">
                   {listing.name}
                 </h1>
-
-                <div className="mt-3 flex items-center gap-4 text-xs text-[color:var(--mock-foreground)]">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5" /> {mock.location}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Star className="h-3.5 w-3.5 fill-[color:var(--gold)] text-[color:var(--gold)]" />
-                    {mock.rating}
-                    <span className="opacity-60">({mock.reviews})</span>
-                  </span>
-                </div>
 
                 <div className="mt-5 font-display text-4xl font-semibold tracking-tight">
                   {currencySymbol(listing.currency)}
                   {listing.price.toLocaleString()}
                 </div>
 
-                <div className="mt-5 space-y-2">
-                  <Button className="w-full h-11 gap-2">
-                    <MessageSquare className="h-4 w-4" /> {t("listing.message")}
-                  </Button>
-                  <Button variant="outline" className="w-full h-11 gap-2">
-                    <Phone className="h-4 w-4" /> {t("listing.call")}
-                  </Button>
-                  <div className="flex gap-2 pt-1">
-                    <Button variant="ghost" size="sm" className="flex-1 gap-1.5">
-                      <Heart className="h-4 w-4" /> {t("listing.save")}
-                    </Button>
-                    <Button variant="ghost" size="sm" className="flex-1 gap-1.5">
-                      <Share2 className="h-4 w-4" /> {t("listing.share")}
-                    </Button>
-                  </div>
-                </div>
-
-                <Separator className="my-5" />
-
-                <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                    {t("listing.seller")}
-                  </div>
-                  <div className="mt-2 flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-display font-semibold">
-                      {sellerInitials}
+                {!isOwner && !mockOnly ? (
+                  <div className="mt-5 space-y-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="order-qty">{t("listing.placeOrder.qty")}</Label>
+                      <QuantityStepper
+                        id="order-qty"
+                        value={qty}
+                        min={1}
+                        max={Math.max(1, maxQty)}
+                        disabled={maxQty < 1}
+                        onChange={setQty}
+                        className="w-full max-w-[10.5rem]"
+                      />
                     </div>
-                    <div className="min-w-0">
-                      <div
-                        className={`font-medium text-sm truncate ${listing.sellerIsPreview ? "text-[color:var(--mock-foreground)]" : "text-foreground"}`}
-                      >
-                        {listing.sellerName || t("listing.seller")}
+                    <Button
+                      className="w-full h-11 gap-2"
+                      disabled={maxQty < 1}
+                      onClick={addToCart}
+                    >
+                      <ShoppingCart className="h-4 w-4" />
+                      {maxQty < 1 ? t("listing.placeOrder.unavailable") : t("listing.addToCart")}
+                    </Button>
+                  </div>
+                ) : null}
+
+                {showSeller ? (
+                  <>
+                    <Separator className="my-5" />
+                    <div>
+                      <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                        {t("listing.seller")}
                       </div>
-                      {listing.sellerIsPreview && mock.verified ? (
-                        <div className="text-xs text-accent flex items-center gap-1">
-                          <BadgeCheck className="h-3 w-3" /> {t("listings.verified")}
+                      <div className="mt-2 flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-display font-semibold">
+                          {sellerInitials}
                         </div>
-                      ) : null}
+                        <div className="min-w-0">
+                          <div className="font-medium text-sm truncate">{listing.sellerName}</div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  </>
+                ) : null}
               </CardContent>
             </Card>
           </aside>

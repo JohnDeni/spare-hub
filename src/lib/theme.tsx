@@ -6,26 +6,39 @@ type Ctx = { theme: Theme; toggle: () => void; setTheme: (t: Theme) => void };
 const ThemeCtx = createContext<Ctx | null>(null);
 const KEY = "sparehub.theme";
 
+function readStoredTheme(): Theme {
+  if (typeof window === "undefined") return "light";
+  try {
+    const stored = window.localStorage.getItem(KEY);
+    if (stored === "light" || stored === "dark") return stored;
+  } catch {
+    // ignore
+  }
+  if (window.matchMedia("(prefers-color-scheme: dark)").matches) return "dark";
+  return "light";
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  // Avoid writing the default before hydration — that wiped the stored preference.
   const [theme, setTheme] = useState<Theme>("light");
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const stored = (typeof window !== "undefined" && localStorage.getItem(KEY)) as Theme | null;
-    const initial: Theme =
-      stored ??
-      (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light");
+    const initial = readStoredTheme();
     setTheme(initial);
+    document.documentElement.classList.toggle("dark", initial === "dark");
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
-    const root = document.documentElement;
-    root.classList.toggle("dark", theme === "dark");
+    if (!hydrated) return;
+    document.documentElement.classList.toggle("dark", theme === "dark");
     try {
-      localStorage.setItem(KEY, theme);
-    } catch {}
-  }, [theme]);
+      window.localStorage.setItem(KEY, theme);
+    } catch {
+      // ignore
+    }
+  }, [theme, hydrated]);
 
   return (
     <ThemeCtx.Provider value={{ theme, setTheme, toggle: () => setTheme(theme === "dark" ? "light" : "dark") }}>

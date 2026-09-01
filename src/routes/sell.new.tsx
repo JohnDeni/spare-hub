@@ -4,7 +4,9 @@ import { SiteLayout } from "@/components/site-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { DescriptionEditor } from "@/components/description-editor";
+import { ProductImagesField } from "@/components/product-images-field";
+import { isDescriptionEmpty } from "@/lib/description-html";
 import {
   Select,
   SelectContent,
@@ -15,19 +17,25 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { MockFieldShell, mockFieldClass } from "@/components/mock-field-shell";
 import { useI18n } from "@/lib/i18n";
-import { categories, listings } from "@/lib/listings";
+import { listings } from "@/lib/listings";
 import { uiConditionToApi } from "@/features/products/display";
 import type { ProductConditionUi, ProductCurrency } from "@/features/products/types";
+import { categoryQueries } from "@/features/categories/queries";
 import { ArrowLeft, ArrowRight, Check, Loader2, PartyPopper } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { routeVisibility } from "@/lib/route-visibility";
 import { useCreateProduct } from "@/features/products/queries";
+import { uploadProductImages } from "@/features/products/client";
 import { useSellerGuard } from "@/features/products/use-seller-guard";
 import { ApiError } from "@/features/auth/client";
 
 export const Route = createFileRoute("/sell/new")({
+  loader: ({ context: { queryClient } }) =>
+    routeVisibility.backend.categoriesApiReady
+      ? queryClient.ensureQueryData(categoryQueries.list())
+      : Promise.resolve([]),
   component: SellNew,
 });
 
@@ -39,6 +47,7 @@ type FormState = {
   price: string;
   quantity: string;
   currency: ProductCurrency;
+  categoryId: string;
 };
 
 const initial: FormState = {
@@ -49,28 +58,35 @@ const initial: FormState = {
   price: "",
   quantity: "1",
   currency: "EUR",
+  categoryId: "",
 };
 
 function SellNew() {
   if (!routeVisibility.header.sell) return <ComingSoon />;
   const { t } = useI18n();
   const navigate = useNavigate();
+  const categories = Route.useLoaderData();
   const { ready } = useSellerGuard("/sell/new");
   const createProduct = useCreateProduct();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(initial);
   const [done, setDone] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
 
   const totalSteps = 2;
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
   const previewMock = listings[0]!;
+  const requireCategory = routeVisibility.backend.categoriesApiReady && categories.length > 0;
 
   const canContinue =
     step === 1
-      ? form.name.trim() !== "" && form.description.trim() !== "" && form.brand.trim() !== ""
+      ? form.name.trim() !== "" &&
+        !isDescriptionEmpty(form.description) &&
+        form.brand.trim() !== "" &&
+        (!requireCategory || form.categoryId !== "")
       : form.price.trim() !== "" &&
         Number.isFinite(Number(form.price)) &&
         Number(form.price) >= 0 &&
@@ -86,7 +102,15 @@ function SellNew() {
         currency: form.currency,
         price: Number(form.price).toFixed(2),
         quantity: Number(form.quantity),
+        ...(form.categoryId ? { category_ids: [Number(form.categoryId)] } : {}),
       });
+      if (pendingPhotos.length > 0) {
+        try {
+          await uploadProductImages(product.id, pendingPhotos);
+        } catch {
+          toast.error(t("sell.field.photos.error"));
+        }
+      }
       setCreatedId(String(product.id));
       setDone(true);
       toast.success(t("sell.review.published"));
@@ -126,7 +150,7 @@ function SellNew() {
           </h1>
           <p className="mt-2 text-muted-foreground">{t("sell.review.publishedBody")}</p>
           <div className="mt-6 flex justify-center gap-2">
-            <Button onClick={() => { setForm(initial); setStep(1); setDone(false); }} variant="outline">
+            <Button onClick={() => { setForm(initial); setStep(1); setDone(false); setPendingPhotos([]); }} variant="outline">
               {t("sell.review.another")}
             </Button>
             <Button onClick={() => navigate({ to: "/account/listings" })}>
@@ -210,12 +234,11 @@ function SellNew() {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="desc">{t("sell.field.description")}</Label>
-                  <Textarea
+                  <DescriptionEditor
                     id="desc"
                     value={form.description}
-                    onChange={(e) => update("description", e.target.value)}
+                    onChange={(v) => update("description", v)}
                     placeholder={t("sell.field.description.ph")}
-                    rows={5}
                   />
                 </div>
 
@@ -233,9 +256,26 @@ function SellNew() {
                   </Select>
                 </div>
 
-                <MockFieldShell label={t("listing.spec.category")}>
-                  <Input readOnly value={t(`cat.${categories[0]!.key}` as const)} className={mockFieldClass} />
-                </MockFieldShell>
+                {requireCategory ? (
+                  <div className="space-y-1.5">
+                    <Label>{t("sell.field.category")}</Label>
+                    <Select
+                      value={form.categoryId || undefined}
+                      onValueChange={(v) => update("categoryId", v)}
+                    >
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder={t("sell.field.category.placeholder")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((c) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
 
                 <MockFieldShell label={t("sell.field.location")}>
                   <Input readOnly value={previewMock.location} className={mockFieldClass} />
@@ -292,10 +332,23 @@ function SellNew() {
                   />
                 </div>
 
+                <div className="space-y-1.5">
+                  <Label>{t("sell.field.photos")}</Label>
+                  <ProductImagesField
+                    mode="draft"
+                    files={pendingPhotos}
+                    onChange={setPendingPhotos}
+                  />
+                </div>
+
                 <dl className="divide-y divide-border/60 text-sm">
                   {[
                     { k: t("sell.field.title"), v: form.name || "—" },
                     { k: t("sell.field.brand"), v: form.brand || "—" },
+                    {
+                      k: t("sell.field.category"),
+                      v: categories.find((c) => String(c.id) === form.categoryId)?.name || "—",
+                    },
                     { k: t("sell.field.condition"), v: t(`browse.condition.${form.condition}` as const) },
                     { k: t("sell.field.price"), v: form.price ? `${form.currency} ${Number(form.price).toLocaleString()}` : "—" },
                     { k: t("products.quantity"), v: form.quantity || "—" },
