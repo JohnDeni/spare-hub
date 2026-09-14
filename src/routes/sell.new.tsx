@@ -15,9 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { MockFieldShell, mockFieldClass } from "@/components/mock-field-shell";
 import { useI18n } from "@/lib/i18n";
-import { listings } from "@/lib/listings";
 import { uiConditionToApi } from "@/features/products/display";
 import type { ProductConditionUi, ProductCurrency } from "@/features/products/types";
 import { categoryQueries } from "@/features/categories/queries";
@@ -78,7 +76,6 @@ function SellNew() {
   const update = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
-  const previewMock = listings[0]!;
   const requireCategory = routeVisibility.backend.categoriesApiReady && categories.length > 0;
 
   const canContinue =
@@ -276,10 +273,6 @@ function SellNew() {
                     </Select>
                   </div>
                 ) : null}
-
-                <MockFieldShell label={t("sell.field.location")}>
-                  <Input readOnly value={previewMock.location} className={mockFieldClass} />
-                </MockFieldShell>
               </div>
             )}
 

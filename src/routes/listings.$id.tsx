@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { QuantityStepper } from "@/components/quantity-stepper";
 import { DescriptionContent } from "@/components/description-content";
 import { ListingImageGallery } from "@/components/listing-image-gallery";
+import { ListingReviews } from "@/components/listing-reviews";
 import { useI18n } from "@/lib/i18n";
 import { routeVisibility } from "@/lib/route-visibility";
 import { listings } from "@/lib/listings";
@@ -27,7 +28,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { useCart } from "@/features/cart/cart-context";
 import { initials } from "@/lib/profile";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, ShoppingCart, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, ShoppingCart, Star, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/listings/$id")({
   loader: async ({ params, context: { queryClient } }) => {
@@ -82,8 +83,12 @@ function ListingDetail() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: mine = [] } = useMyProducts(canManageProducts(user) && !mockOnly);
-  const isOwner = !mockOnly && mine.some((p) => p.id === listing.product.id);
+  const isSellerAccount = canManageProducts(user);
+  const { data: mine = [] } = useMyProducts(isSellerAccount && !mockOnly);
+  // Only treat as owner when this account can sell — otherwise stale
+  // /products/my/ cache must not hide the review form for buyers.
+  const isOwner =
+    Boolean(isSellerAccount) && !mockOnly && mine.some((p) => p.id === listing.product.id);
   const { addItem } = useCart();
   const maxQty = Math.max(0, listing.quantity);
   const [qty, setQty] = useState(maxQty > 0 ? 1 : 0);
@@ -208,6 +213,15 @@ function ListingDetail() {
                 ))}
               </dl>
             </section>
+
+            {!mockOnly ? (
+              <ListingReviews
+                productId={listing.product.id}
+                averageRating={listing.rating}
+                reviewCount={listing.reviewCount}
+                canReview={!isOwner}
+              />
+            ) : null}
           </div>
 
           <aside className="lg:sticky lg:top-20 lg:self-start space-y-4">
@@ -231,6 +245,16 @@ function ListingDetail() {
                 <h1 className="mt-2 font-display text-2xl font-semibold leading-tight tracking-tight">
                   {listing.name}
                 </h1>
+
+                {listing.reviewCount > 0 ? (
+                  <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                    <Star className="h-4 w-4 fill-[color:var(--gold)] text-[color:var(--gold)]" />
+                    <span>
+                      {listing.rating.toFixed(1)} ·{" "}
+                      {t("reviews.count").replace("{count}", String(listing.reviewCount))}
+                    </span>
+                  </div>
+                ) : null}
 
                 <div className="mt-5 font-display text-4xl font-semibold tracking-tight">
                   {currencySymbol(listing.currency)}
@@ -274,7 +298,26 @@ function ListingDetail() {
                           {sellerInitials}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-medium text-sm truncate">{listing.sellerName}</div>
+                          {listing.sellerSlug ? (
+                            <Link
+                              to="/sellers/$slug"
+                              params={{ slug: listing.sellerSlug }}
+                              className="font-medium text-sm truncate block hover:underline underline-offset-4"
+                            >
+                              {listing.sellerName}
+                            </Link>
+                          ) : (
+                            <div className="font-medium text-sm truncate">{listing.sellerName}</div>
+                          )}
+                          {listing.sellerSlug ? (
+                            <Link
+                              to="/sellers/$slug"
+                              params={{ slug: listing.sellerSlug }}
+                              className="text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              {t("listing.seller.viewProfile")}
+                            </Link>
+                          ) : null}
                         </div>
                       </div>
                     </div>
