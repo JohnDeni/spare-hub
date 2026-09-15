@@ -34,6 +34,8 @@ class ReviewReplySerializer(serializers.ModelSerializer):
         ).data
 
     def validate_parent_reply(self, parent_reply):
+        if parent_reply is None:
+            return parent_reply
         review = self.context.get("review")
         if review is not None and parent_reply.review_id != review.id:
             raise serializers.ValidationError(
