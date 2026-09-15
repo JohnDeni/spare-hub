@@ -33,10 +33,10 @@ __pycache__
 .ruff_cache
 .pytest_cache
 manage.py
-requirements.txt
 Dockerfile
 docker-compose.yml
 pyproject.toml
+poetry.lock
 
 # Env / secrets
 .env

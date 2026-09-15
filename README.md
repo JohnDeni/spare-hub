@@ -4,18 +4,28 @@ Spare Hub is an online marketplace for tractor parts and agronomy supplies. It h
 
 ## Installation
 
-Install project dependencies from `requirements.txt`:
+Backend dependencies are managed with [Poetry](https://python-poetry.org/docs/#installation):
 
 ```bash
-# (Optional) create and activate a virtual environment
-python -m venv .venv
-# macOS/Linux
-source .venv/bin/activate
-# Windows (PowerShell)
-# .venv\Scripts\Activate.ps1
+# Install Poetry itself, if you don't have it yet
+pip install poetry
 
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies (creates/uses a virtualenv for you automatically)
+poetry install
+
+# Run any backend command inside that virtualenv, e.g.:
+poetry run python manage.py migrate
+poetry run python manage.py runserver
+```
+
+If you'd rather manage the virtualenv yourself (e.g. to keep using
+`python manage.py ...` directly instead of `poetry run ...`), point Poetry
+at an already-activated one instead of letting it create its own:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Windows (PowerShell): .venv\Scripts\Activate.ps1
+poetry install
 ```
 
 Install frontend dependencies:
@@ -98,7 +108,8 @@ migrate` before starting the dev server (`0.0.0.0:8000`), so the database
 schema is always up to date. Project files are bind-mounted into both the
 `web` and `frontend` containers, so code edits on the host are picked up
 immediately — no rebuild needed (only `docker compose up --build` if
-`requirements.txt` or `package.json`/`package-lock.json` change).
+`pyproject.toml`/`poetry.lock` or `package.json`/`package-lock.json`
+change).
 
 **Ports**: the frontend is at `http://localhost:8080`, the API at
 `http://localhost:8000`, same as running everything on the host directly.
@@ -123,19 +134,24 @@ This repository enforces consistent code style and best practices using Black (f
 
 ### One-time setup
 ```bash
-pip install pre-commit
-pre-commit install
+# pre-commit is installed as a Poetry dev dependency — `poetry install`
+# (see Installation above) already pulls it in.
+poetry run pre-commit install
 ```
 
 ### Run checks and auto-fixes locally
 ```bash
 # Run all hooks on all files
-pre-commit run --all-files
+poetry run pre-commit run --all-files
 
 # Or run specific tools directly
-black .
-ruff check --fix .
+poetry run black .
+poetry run ruff check --fix .
 ```
+
+(Drop the `poetry run` prefix if you activated Poetry's virtualenv first
+with `poetry shell` — or if you pointed Poetry at your own already-active
+venv, as shown in Installation above.)
 
 Conventions enforced:
 - Double quotes for strings where possible (Ruff Q rules)

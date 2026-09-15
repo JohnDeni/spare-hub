@@ -1,3 +1,34 @@
+[project]
+name = "sparehub"
+version = "0.1.0"
+description = "Spare Hub — online marketplace for tractor parts and agronomy supplies"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "django (==5.2.7)",
+  "djangorestframework (==3.16.1)",
+  "django-phonenumber-field (==8.4.0)",
+  "phonenumberslite (==9.0.20)",
+  "psycopg2-binary (==2.9.11)",
+  "python-decouple (==3.8)",
+  "drf-spectacular (==0.29.0)",
+  "djangorestframework-simplejwt (==5.5.1)",
+  "django-filter (==25.2)",
+  "django-cors-headers (==4.9.0)",
+  "pillow (==12.3.0)",
+]
+
+[tool.poetry]
+package-mode = false
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "4.5.0"
+ruff = "0.6.9"
+black = "24.8.0"
+
+[build-system]
+requires = ["poetry-core>=2.0"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.black]
 line-length = 88
 target-version = ["py312"]
