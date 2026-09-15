@@ -1,0 +1,53 @@
+# VCS / editor / IDE
+.git
+.github
+.gitignore
+.idea
+.vscode
+.editorconfig
+
+# Python
+__pycache__
+*.py[cod]
+*.egg-info
+.ruff_cache
+.pytest_cache
+venv
+.venv
+env
+ENV
+
+# Env / secrets — never bake these into the image
+.env
+.env.*
+!.env.example
+
+# Frontend (not part of the Django image; runs on the host)
+node_modules
+.vite
+dist
+build
+src
+public
+bun.lock
+bunfig.toml
+package*.json
+tsconfig.json
+vite.config.ts
+eslint.config.js
+components.json
+wrangler.jsonc
+.prettierrc
+.prettierignore
+
+# Runtime data / logs (populated via the bind mount, not baked in)
+media
+db.sqlite3
+db.sqlite3-journal
+*.log
+.DS_Store
+
+# Docs
+docs
+*.md
+!README.md
