@@ -18,13 +18,20 @@ import { routeVisibility } from "@/lib/route-visibility";
 
 export const Route = createFileRoute("/")({
   loader: async ({ context: { queryClient } }) => {
-    const [listResult, categories] = await Promise.all([
-      queryClient.ensureQueryData(productQueries.list()),
-      routeVisibility.backend.categoriesApiReady
-        ? queryClient.ensureQueryData(categoryQueries.list())
-        : Promise.resolve([]),
-    ]);
-    return { listResult, categories };
+    try {
+      const [listResult, categories] = await Promise.all([
+        queryClient.ensureQueryData(productQueries.list()),
+        routeVisibility.backend.categoriesApiReady
+          ? queryClient.ensureQueryData(categoryQueries.list())
+          : Promise.resolve([]),
+      ]);
+      return { listResult, categories };
+    } catch {
+      return {
+        listResult: { products: [], count: 0 },
+        categories: [],
+      };
+    }
   },
   component: Index,
 });

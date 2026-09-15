@@ -16,7 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { MockFieldShell, mockFieldClass } from "@/components/mock-field-shell";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -82,7 +81,6 @@ function SellEdit() {
   const deleteProduct = useDeleteProduct();
   const { data: liveProduct } = useProduct(product.id);
   const images = liveProduct?.images ?? product.images ?? [];
-  const { mock } = display;
 
   const [name, setName] = useState(product.name);
   const [brand, setBrand] = useState(product.brand);
@@ -276,10 +274,6 @@ function SellEdit() {
                 </Select>
               </div>
             ) : null}
-
-            <MockFieldShell label={t("sell.field.location")}>
-              <Input readOnly value={mock.location} className={mockFieldClass} />
-            </MockFieldShell>
           </CardContent>
         </Card>
 

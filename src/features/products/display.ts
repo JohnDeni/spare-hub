@@ -2,6 +2,7 @@ import { listings, type Listing } from "@/lib/listings";
 import type { Lang } from "@/lib/i18n";
 import { routeVisibility } from "@/lib/route-visibility";
 import { slugifyCategory } from "@/features/categories/display";
+import { slugifySellerName } from "@/features/sellers/slug";
 import { productImageUrls } from "@/lib/product-media";
 import type {
   Product,
@@ -24,6 +25,8 @@ export type ProductDisplay = {
   currency: ProductCurrency;
   sellerName: string;
   sellerIsPreview: boolean;
+  /** Seller storefront slug when API seller is present. */
+  sellerSlug: string | null;
   /** API category names when present; empty if none. */
   categoryNames: string[];
   /** Slug of first API category, or mock category key for links. */
@@ -31,6 +34,9 @@ export type ProductDisplay = {
   /** Resolved image URLs from the API, cover first. */
   imageUrls: string[];
   coverImageUrl: string | null;
+  /** Aggregate rating for cards and detail (API when available). */
+  rating: number;
+  reviewCount: number;
   mock: Pick<
     Listing,
     "category" | "location" | "verified" | "rating" | "reviews" | "emoji"
@@ -53,17 +59,29 @@ export function mockExtrasForProduct(product: Product): ProductDisplay["mock"] {
   const seed = mockSeedForProduct(product);
   return {
     category: seed.category,
-    location: seed.location,
-    verified: seed.verified,
-    rating: seed.rating,
-    reviews: seed.reviews,
+    location: "",
+    verified: false,
+    rating: 0,
+    reviews: 0,
     emoji: seed.emoji,
   };
 }
 
-function sellerDisplayFromProduct(product: Product, seed: Listing) {
+function productRatingSummary(product: Product): Pick<ProductDisplay, "rating" | "reviewCount"> {
+  const reviewCount = Number(product.review_count ?? 0);
+  const average = Number(product.average_rating ?? 0);
+  return {
+    rating: Number.isFinite(average) ? average : 0,
+    reviewCount: Number.isFinite(reviewCount) ? reviewCount : 0,
+  };
+}
+
+function sellerDisplayFromProduct(
+  product: Product,
+  seed: Listing,
+): Pick<ProductDisplay, "sellerName" | "sellerIsPreview" | "sellerSlug"> {
   if (!routeVisibility.backend.productSellerInApi) {
-    return { sellerName: seed.seller, sellerIsPreview: true };
+    return { sellerName: seed.seller, sellerIsPreview: true, sellerSlug: null };
   }
 
   const seller = product.seller;
@@ -71,12 +89,13 @@ function sellerDisplayFromProduct(product: Product, seed: Listing) {
     const s = seller as ProductSeller;
     const sellerName = (s.display_name || s.company_name || "").trim();
     return {
-      sellerName,
+      sellerName: sellerName || `Seller #${s.id}`,
       sellerIsPreview: false,
+      sellerSlug: slugifySellerName(sellerName || `seller-${s.id}`),
     };
   }
 
-  return { sellerName: "", sellerIsPreview: false };
+  return { sellerName: "", sellerIsPreview: false, sellerSlug: null };
 }
 
 export function productToDisplay(product: Product): ProductDisplay {
@@ -87,6 +106,7 @@ export function productToDisplay(product: Product): ProductDisplay {
   const categorySlug =
     categoryNames[0] != null ? slugifyCategory(categoryNames[0]) : seed.category;
   const imageUrls = productImageUrls(product.images);
+  const { rating, reviewCount } = productRatingSummary(product);
 
   return {
     id: String(product.id),
@@ -104,6 +124,8 @@ export function productToDisplay(product: Product): ProductDisplay {
     categorySlug,
     imageUrls,
     coverImageUrl: imageUrls[0] ?? null,
+    rating,
+    reviewCount,
     mock: mockExtrasForProduct(product),
   };
 }
@@ -142,10 +164,13 @@ export function mockListingToDisplay(listing: Listing, lang: Lang = "en"): Produ
     currency: listing.currency,
     sellerName: listing.seller,
     sellerIsPreview: true,
+    sellerSlug: null,
     categoryNames: [],
     categorySlug: listing.category,
     imageUrls: [],
     coverImageUrl: null,
+    rating: listing.rating,
+    reviewCount: listing.reviews,
     mock: {
       category: listing.category,
       location: listing.location,

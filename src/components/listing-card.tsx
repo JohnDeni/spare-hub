@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Package } from "lucide-react";
+import { Package, Star } from "lucide-react";
 import type { ProductDisplay } from "@/features/products/display";
 import { currencySymbol } from "@/features/products/display";
 import { useI18n } from "@/lib/i18n";
@@ -50,6 +50,15 @@ export function ListingCard({ listing }: { listing: ProductDisplay }) {
           <h3 className="mt-1.5 font-display text-base font-semibold leading-snug line-clamp-2 min-h-[2.75rem]">
             {listing.name}
           </h3>
+          {listing.reviewCount > 0 ? (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Star className="h-3.5 w-3.5 fill-[color:var(--gold)] text-[color:var(--gold)]" />
+              <span>
+                {listing.rating.toFixed(1)} ·{" "}
+                {t("reviews.count").replace("{count}", String(listing.reviewCount))}
+              </span>
+            </div>
+          ) : null}
           <div className="mt-4">
             <div className="font-display text-xl font-semibold tracking-tight">
               {currencySymbol(listing.currency)}

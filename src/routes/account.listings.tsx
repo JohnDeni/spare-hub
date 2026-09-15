@@ -148,21 +148,13 @@ function ListingRow({
               <span className="text-muted-foreground">
                 {t("products.quantity")}: {listing.quantity}
               </span>
-              <Badge
-                variant="outline"
-                className={
-                  listing.categoryNames[0]
-                    ? "font-normal"
-                    : "text-[color:var(--mock-foreground)] border-[color:var(--mock)]"
-                }
-              >
-                {listing.categoryNames[0] ?? t(`cat.${listing.mock.category}` as const)}
-              </Badge>
+              {listing.categoryNames[0] ? (
+                <Badge variant="outline" className="font-normal">
+                  {listing.categoryNames[0]}
+                </Badge>
+              ) : null}
             </div>
-            <p className="mt-1 text-xs text-muted-foreground truncate">
-              {listing.brand} ·{" "}
-              <span className="text-[color:var(--mock-foreground)]">{listing.mock.location}</span>
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground truncate">{listing.brand}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">

@@ -31,6 +31,8 @@ export type Product = {
   quantity: number;
   category?: Category[];
   images?: ProductImage[];
+  average_rating?: string | number;
+  review_count?: number;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
