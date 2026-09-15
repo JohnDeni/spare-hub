@@ -39,5 +39,27 @@ services:
       db:
         condition: service_healthy
 
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    restart: unless-stopped
+    volumes:
+      - .:/app
+      # Anonymous volume so the container's own (Linux) npm-ci'd
+      # node_modules isn't shadowed by the host's (e.g. macOS) node_modules
+      # from the bind mount above — their native binaries (esbuild, rollup)
+      # aren't interchangeable across platforms.
+      - /app/node_modules
+    ports:
+      - "8080:8080"
+    environment:
+      # Only read server-side (see resolveApiBaseUrl in
+      # src/features/auth/client.ts) — the browser still talks to the
+      # backend via localhost:8000 regardless of this value.
+      SSR_API_BASE_URL: http://web:8000
+    depends_on:
+      - web
+
 volumes:
   postgres_data:

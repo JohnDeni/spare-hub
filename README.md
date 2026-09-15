@@ -43,13 +43,10 @@ npm run dev      # frontend only
 npm run dev:be   # backend only
 ```
 
-## Run the backend with Docker
+## Run with Docker
 
-The Django app and PostgreSQL can run in containers instead of a local
-virtualenv + local Postgres install. This only covers the backend — the
-frontend still runs on the host with `npm run dev` (it talks to the
-containerized API the same way it talks to a locally-run one, via
-`http://localhost:8000`).
+The Django app, PostgreSQL, and the frontend dev server can all run in
+containers instead of a local virtualenv/Postgres/Node install.
 
 ### Prerequisites
 
@@ -77,12 +74,17 @@ docker compose up --build
 # Same, but detached
 docker compose up -d
 
-# Follow backend logs
+# Follow logs for one service
 docker compose logs -f web
+docker compose logs -f frontend
 
 # Run management commands inside the running container
 docker compose exec web python manage.py createsuperuser
 docker compose exec web python manage.py test
+
+# Run only the backend + database (skip the frontend container — e.g. if
+# you'd rather run `npm run dev` on the host)
+docker compose up db web
 
 # Stop containers (keeps the database volume)
 docker compose down
@@ -93,18 +95,27 @@ docker compose down -v
 
 On startup, the `web` container automatically runs `python manage.py
 migrate` before starting the dev server (`0.0.0.0:8000`), so the database
-schema is always up to date. Project files are bind-mounted into the
-container, so code edits on the host are picked up immediately — no rebuild
-needed for Python changes (only `docker compose up --build` if
-`requirements.txt` changes).
+schema is always up to date. Project files are bind-mounted into both the
+`web` and `frontend` containers, so code edits on the host are picked up
+immediately — no rebuild needed (only `docker compose up --build` if
+`requirements.txt` or `package.json`/`package-lock.json` change).
 
-**Ports**: the API is reachable at `http://localhost:8000` either way.
+**Ports**: the frontend is at `http://localhost:8080`, the API at
+`http://localhost:8000`, same as running everything on the host directly.
 Postgres is exposed on host port `5433` (not `5432`), so it won't clash with
 a Postgres you might already have running locally — connect a GUI client
 (TablePlus, pgAdmin, etc.) to `localhost:5433` if you want to inspect data
 directly. Database data persists in a named Docker volume
 (`postgres_data`) across restarts; `docker compose down -v` is the only
 thing that clears it.
+
+**Frontend server-side rendering**: TanStack Start renders the first page
+load on the server. Inside the `frontend` container that server-side code
+can't infer the API host from the browser's address bar (there is no
+browser yet), so it uses `SSR_API_BASE_URL` (set to `http://web:8000` in
+`docker-compose.yml`, the backend's service name on the Docker network)
+instead. This only affects that one server-side fetch — everything the
+browser itself calls still goes to `http://localhost:8000` as usual.
 
 ## Code style and pre-commit
 
