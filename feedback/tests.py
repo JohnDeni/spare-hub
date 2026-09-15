@@ -358,6 +358,19 @@ class ReviewReplyAPITests(BaseReviewTestCase):
         self.assertEqual(reply.user, self.other_user)
         self.assertEqual(reply.message, "Thanks for the feedback!")
 
+    def test_add_reply_with_explicit_null_parent(self):
+        self.login("other@test.com", "StrongPass123")
+        review = Review.objects.create(product=self.product, user=self.user, rating=4)
+        response = self.client.post(
+            f"{self.reviews_url}{review.id}/replies/",
+            {"message": "Top-level reply", "parent_reply": None},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        reply = review.replies.get()
+        self.assertIsNone(reply.parent_reply)
+        self.assertEqual(reply.message, "Top-level reply")
+
     def test_reply_requires_authentication(self):
         review = Review.objects.create(product=self.product, user=self.user, rating=4)
         response = self.client.post(
