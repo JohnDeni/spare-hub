@@ -45,20 +45,16 @@ jobs:
         run: pipx install poetry==2.4.3
 
       - name: Install dependencies
-        env:
-          # Install straight into the runner's Python — no separate venv to
-          # activate before the steps below (ruff/black/manage.py) can run.
-          POETRY_VIRTUALENVS_CREATE: "false"
         run: poetry install --no-root
 
       - name: Run Ruff
-        run: ruff check .
+        run: poetry run ruff check .
 
       - name: Check formatting
-        run: black --check .
+        run: poetry run black --check .
 
       - name: Apply migrations
-        run: python manage.py migrate --noinput
+        run: poetry run python manage.py migrate --noinput
 
       - name: Run tests
-        run: python manage.py test
+        run: poetry run python manage.py test
