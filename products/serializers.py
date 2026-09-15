@@ -61,7 +61,9 @@ class ProductSerializer(serializers.ModelSerializer):
             "category",
             "category_ids",
             "images",
+            "average_rating",
+            "review_count",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["seller"]
+        read_only_fields = ["seller", "average_rating", "review_count"]

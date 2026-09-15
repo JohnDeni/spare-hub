@@ -8,6 +8,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import Seller
+from feedback.models import Review
 from products.models import Category, Product, ProductImage
 
 User = get_user_model()
@@ -686,3 +687,61 @@ class ProductImageTests(BaseProductTestCase):
         )
         self.assertEqual(upload.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(delete.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class ProductRatingStatsTests(BaseProductTestCase):
+
+    def test_new_product_has_zero_rating_stats(self):
+        response = self.client.get(self.product_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Decimal(response.data["average_rating"]), Decimal("0.00"))
+        self.assertEqual(response.data["review_count"], 0)
+
+    def test_retrieve_reflects_review_stats(self):
+        Review.objects.create(product=self.product, user=self.buyer, rating=4)
+        Review.objects.create(product=self.product, user=self.other_user, rating=2)
+
+        response = self.client.get(self.product_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Decimal(response.data["average_rating"]), Decimal("3.00"))
+        self.assertEqual(response.data["review_count"], 2)
+
+    def test_list_reflects_review_stats(self):
+        Review.objects.create(product=self.product, user=self.buyer, rating=5)
+
+        response = self.client.get(self.products_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        product_data = next(
+            item for item in response.data["results"] if item["id"] == self.product.id
+        )
+        self.assertEqual(Decimal(product_data["average_rating"]), Decimal("5.00"))
+        self.assertEqual(product_data["review_count"], 1)
+
+    def test_my_products_reflects_review_stats(self):
+        Review.objects.create(product=self.product, user=self.buyer, rating=1)
+        self.login("seller@test.com", "StrongPass123")
+
+        response = self.client.get(self.my_products_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        product_data = next(
+            item for item in response.data if item["id"] == self.product.id
+        )
+        self.assertEqual(Decimal(product_data["average_rating"]), Decimal("1.00"))
+        self.assertEqual(product_data["review_count"], 1)
+
+    def test_rating_stats_are_read_only(self):
+        self.login("seller@test.com", "StrongPass123")
+
+        response = self.client.patch(
+            self.product_url,
+            {"average_rating": "5.00", "review_count": 99},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.average_rating, Decimal("0.00"))
+        self.assertEqual(self.product.review_count, 0)
