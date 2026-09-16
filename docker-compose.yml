@@ -1,0 +1,65 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-sparehub}
+      POSTGRES_USER: ${DB_USER:-sparehub_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      # Exposed on a non-default host port so it doesn't clash with a
+      # Postgres you might already have running locally on 5432.
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sparehub_user} -d ${DB_NAME:-sparehub}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Override host/port from .env: inside the compose network the
+      # database is reachable at the "db" service name, not localhost.
+      DB_HOST: db
+      DB_PORT: 5432
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    restart: unless-stopped
+    volumes:
+      - .:/app
+      # Anonymous volume so the container's own (Linux) npm-ci'd
+      # node_modules isn't shadowed by the host's (e.g. macOS) node_modules
+      # from the bind mount above — their native binaries (esbuild, rollup)
+      # aren't interchangeable across platforms.
+      - /app/node_modules
+    ports:
+      - "8080:8080"
+    environment:
+      # Only read server-side (see resolveApiBaseUrl in
+      # src/features/auth/client.ts) — the browser still talks to the
+      # backend via localhost:8000 regardless of this value.
+      SSR_API_BASE_URL: http://web:8000
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:

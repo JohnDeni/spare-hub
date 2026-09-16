@@ -19,7 +19,12 @@ function resolveApiBaseUrl(): string {
     return `http://${window.location.hostname}:8000`;
   }
 
-  return "http://localhost:8000";
+  // SSR (no `window` to read a hostname from). docker-compose.yml sets
+  // SSR_API_BASE_URL to the backend's service name for the containerized
+  // frontend, since "localhost" there would mean the frontend container
+  // itself rather than the backend one.
+  const ssrOverride = typeof process !== "undefined" && process.env?.SSR_API_BASE_URL;
+  return ssrOverride || "http://localhost:8000";
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();

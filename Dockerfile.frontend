@@ -1,0 +1,17 @@
+# Debian-based (not alpine) so esbuild/rollup's prebuilt native binaries,
+# which target glibc, work without extra musl-compat packages.
+FROM node:22-slim
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+# The @lovable.dev/vite-tanstack-config wrapper (vite.config.ts) always
+# binds the dev server to host "::" (all interfaces) on port 8080, so no
+# --host/--port flags are needed here.
+EXPOSE 8080
+
+CMD ["npm", "run", "dev"]

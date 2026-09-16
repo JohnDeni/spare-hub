@@ -1,0 +1,56 @@
+# BuildKit uses this instead of the root .dockerignore for builds that use
+# Dockerfile.frontend (the root one is tuned for the Django image, which
+# excludes src/, package*.json, etc. — the opposite of what this image needs).
+
+# VCS / editor / IDE
+.git
+.github
+.gitignore
+.idea
+.vscode
+.editorconfig
+
+# Node — reinstalled fresh in the image via `npm ci`
+node_modules
+.vite
+dist
+build
+
+# Python backend (not part of the frontend image)
+accounts
+core
+feedback
+orders
+products
+sparehub
+venv
+.venv
+env
+ENV
+__pycache__
+*.py[cod]
+*.egg-info
+.ruff_cache
+.pytest_cache
+manage.py
+Dockerfile
+docker-compose.yml
+pyproject.toml
+poetry.lock
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Runtime data / logs
+media
+db.sqlite3
+db.sqlite3-journal
+*.log
+.DS_Store
+
+# Docs
+docs
+*.md
+!README.md
