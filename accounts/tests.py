@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from accounts.models import UserProfile
+from accounts.models import Seller, UserProfile
 
 User = get_user_model()
 
@@ -192,6 +192,31 @@ class ProfileTests(BaseAuthTestCase):
         self.assertEqual(profile.role, payload["role"])
 
         self.assertEqual(self.user.email, payload["user"]["email"])
+
+    def test_update_profile_to_seller_creates_seller_record(self):
+        self.authorize()
+        self.assertFalse(Seller.objects.filter(user=self.user).exists())
+
+        response = self.client.patch(
+            self.profile_me,
+            {"role": "seller"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        seller = Seller.objects.filter(user=self.user).first()
+        self.assertIsNotNone(seller)
+        self.assertEqual(str(seller.phone_number), "380000000000")
+
+    def test_update_profile_to_seller_is_idempotent(self):
+        self.authorize()
+
+        self.client.patch(self.profile_me, {"role": "seller"}, format="json")
+        self.client.patch(self.profile_me, {"role": "buyer"}, format="json")
+        response = self.client.patch(self.profile_me, {"role": "seller"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Seller.objects.filter(user=self.user).count(), 1)
 
     def test_update_profile_without_token(self):
 

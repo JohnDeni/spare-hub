@@ -4,6 +4,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/features/auth/auth-context";
 import { updateProfile } from "@/features/auth/django-client";
@@ -27,12 +34,14 @@ function ProfileForm() {
   const { user, refresh } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [role, setRole] = useState<Role>("buyer");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
       setFirstName(user.first_name ?? "");
       setLastName(user.last_name ?? "");
+      setRole(user.role ?? "buyer");
     }
   }, [user]);
 
@@ -41,7 +50,7 @@ function ProfileForm() {
     if (!user || saving) return;
     setSaving(true);
     try {
-      await updateProfile(user.id, { first_name: firstName, last_name: lastName });
+      await updateProfile(user.id, { first_name: firstName, last_name: lastName, role });
       await refresh();
       toast.success(t("account.saved"));
     } catch {
@@ -89,7 +98,19 @@ function ProfileForm() {
 
           <div className="space-y-2">
             <Label htmlFor="role">{t("account.field.role")}</Label>
-            <Input id="role" value={roleLabel(user?.role, t)} disabled readOnly />
+            {user?.role === "admin" ? (
+              <Input id="role" value={roleLabel(user?.role, t)} disabled readOnly />
+            ) : (
+              <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+                <SelectTrigger id="role" className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="buyer">{t("account.role.buyer")}</SelectItem>
+                  <SelectItem value="seller">{t("account.role.seller")}</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </CardContent>
       </Card>

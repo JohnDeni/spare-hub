@@ -53,6 +53,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
         instance.role = role
         instance.save()
 
+        if role == "seller":
+            Seller.objects.get_or_create(
+                user=instance.user,
+                defaults={"phone_number": instance.phone_number},
+            )
+
         return instance
 
 
