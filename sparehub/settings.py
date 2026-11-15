@@ -168,6 +168,38 @@ STATIC_URL = "static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Product/review images are stored on S3 in deployed environments — the ECS
+# task's local disk is ephemeral and wiped on every redeploy. Local dev keeps
+# using the filesystem (Django's STORAGES default) since this var is unset.
+AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME", default="")
+AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="eu-north-1")
+
+if AWS_STORAGE_BUCKET_NAME:
+    # Bucket policy (not object ACLs) grants public read — matches the
+    # bucket's ACLs-disabled (BucketOwnerEnforced) default.
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_FILE_OVERWRITE = False
+    # Without this, generated URLs use the generic s3.amazonaws.com host,
+    # which 307-redirects to the region-specific one for any bucket outside
+    # us-east-1 — an extra round trip on every image load.
+    AWS_S3_CUSTOM_DOMAIN = (
+        f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
+    )
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "bucket_name": AWS_STORAGE_BUCKET_NAME,
+                "region_name": AWS_S3_REGION_NAME,
+                "custom_domain": AWS_S3_CUSTOM_DOMAIN,
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 

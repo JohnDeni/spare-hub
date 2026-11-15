@@ -1,0 +1,34 @@
+# Production image for the TanStack Start frontend.
+#
+# `npm run build` always targets Cloudflare Workers (@cloudflare/vite-plugin
+# is wired in unconditionally via vite.config.ts), so dist/server/index.js is
+# a plain `{ fetch(request, env, ctx) }` handler, not a Node server. The
+# runtime stage hosts it with srvx via server.aws.mjs instead of running it
+# through wrangler/workerd.
+FROM node:22-slim AS build
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+# Baked in at build time: import.meta.env.VITE_API_BASE_URL is inlined into
+# the bundle by Vite, it cannot be changed by a runtime env var.
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+RUN npm run build
+
+FROM node:22-slim
+WORKDIR /app
+
+COPY --from=build /app/dist ./dist
+# srvx has zero dependencies of its own, so copying the package is enough —
+# no need to npm ci the whole project (none of its other deps are imported
+# at runtime, the SSR bundle is already fully self-contained).
+COPY --from=build /app/node_modules/srvx ./node_modules/srvx
+COPY server.aws.mjs ./
+
+EXPOSE 8080
+
+CMD ["node", "server.aws.mjs"]
